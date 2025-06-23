@@ -1,0 +1,17 @@
+Xtruco Installation Guide
+
+The provided executable was compiled in the following environment:
+Linux 2.0.0, X11R6, GNU C 2.7.2. It has also been tested to run under Sun environment.
+
+To rebuild the executable:
+
+Check the Makefile to ensure it matches your system's configuration.
+make allclean
+make
+make clean
+
+If you encounter issues with IPC 'shared memory', comment out the option IPC_OK in the Makefile.
+
+Good luck...
+
+Marcos Martins Duma

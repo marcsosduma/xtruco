@@ -1,0 +1,10 @@
+tmp
+*.so
+*.dll
+*.o
+*.i
+*.SCR
+*gdb.py
+*.DAT
+*.DAT.*
+xtruco

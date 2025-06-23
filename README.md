@@ -22,5 +22,6 @@ Use the following command to compile:
 
 ```bash
 gcc -fdiagnostics-color=always -g xtruco.c -o xtruco -lX11 -lm
+```
 
 ![Screenshot](xtruco.png)

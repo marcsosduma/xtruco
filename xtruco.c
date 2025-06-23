@@ -453,7 +453,7 @@ int         *width, *height;
 		}
 		else if(Message==NO)
 		{
-			strcpy(Messa, "You run away again...");
+			strcpy(Messa, "You're running away again...");
 			TalkMachine( display, window, gc, Messa, 0 ); 
 			Message=0;
 			State=13;
@@ -489,7 +489,7 @@ int         *width, *height;
 			  State=5;
 			}
 			else
-			  sprintf(Messa, "I accept, let's go !!!");
+			  sprintf(Messa, "I accept. Let's go !!!");
 			TalkMachine( display, window, gc, Messa, 0 );
 		}
 		else
@@ -549,7 +549,7 @@ int         *width, *height;
 			if(YourScore>=MAXIMO)
 			  sprintf(Messa, "You Win !!!");
 			else if(MyScore>=MAXIMO) 
-			  sprintf(Messa, "OOHHH! I Win!!! Try again...");
+			  sprintf(Messa, "Ohhh! I win!!! Try again!");
 			if((YourScore>=MAXIMO) || (MyScore>=MAXIMO))
 			{
 				TalkMachine( display, window, gc, Messa, 0 );

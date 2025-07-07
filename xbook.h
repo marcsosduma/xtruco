@@ -70,4 +70,7 @@ Window TopWindow();
 
 XFontStruct *LoadFont();
 
+XImage* loadBitmapFromMemory(Display* display, Visual* visual, int screen,
+                             const unsigned char* bmpData, unsigned int bmpSize);
 
+CheckGeometry( argc, argv, screen_width, screen_height, x, y, width, height );

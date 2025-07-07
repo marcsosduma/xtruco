@@ -9,19 +9,25 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-
-#include "truco.xb"
-#include "cards.xbm"
+#include <unistd.h>
+#include "truco.xbm"
+#include "cards.h"
+// xxd -i cards.bmp > cards.h  ---gerar o .h
 
 #define       MAX_PIX      30
 #define       TOTAL        42
-#define	      BACK	   40
+#define	      BACK	   	   40
 #define	      MAXIMO	   12
-#define	      YES	   88
-#define	      NO	   89
-#define	      NEW	   99
+#define	      YES	   	   88
+#define	      NO	       89
+#define	      NEW	       99
 #define	      WAITING	   91
 #define	      ERR_TRUCO	   666
+
+#define CARDS_WIDTH  80
+#define CARDS_HEIGHT 123
+
+#define WAIT_VIEW 15000
 
 typedef struct
     {
@@ -54,8 +60,8 @@ struct {
 			int analisys;
 		 } info={ 0, 0, 0, 0, 0, 8, 1};
 
-BIT_STRUCT    		the_bitmaps[ MAX_PIX ];
-TYPE_SCORE	      		score[ 2 ]={{0,0,0},{0,0,0}};	
+BIT_STRUCT    	the_bitmaps[ MAX_PIX ];
+TYPE_SCORE	    score[ 2 ]={{0,0,0},{0,0,0}};	
 
 int 			horiz, vert;
 int 			State=0, Message=0, Cards[40];
@@ -68,7 +74,15 @@ int			alert, Sum_Val, ValGame, danger, Begining;
 int			Play, Beginer, Who_Say_Truco,score1, score2;
 int			SHOW=1;
 
-main( argc, argv )
+XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0},{640,0},{720,0},{800,0},{880,0},
+		 		  {0,125}, {80,125}, {160,125}, {240,125},{320,125},{400,125},{480,125},{560,125},{640,125},{720,125},{800,125},{880,125}, 
+		 		  {0,248}, {80,248}, {160,248}, {240,248},{320,248},{400,248},{480,248},{560,248},{640,248},{720,248},{800,248},{880,248}, 
+		 		  {0,372}, {80,372}, {160,372}, {240,372},{320,372},{400,372}}; 
+XImage* bmdcards = NULL;
+int q=2;
+
+
+int main( argc, argv )
 int argc;
 char *argv[];
 {
@@ -93,21 +107,7 @@ char *argv[];
     shmflg |= 0x1ff;
     shmat( shmid, shmaddr, shmflg );
 #endif
-    CarBit[0]= card1_bits;CarBit[1]= card2_bits;CarBit[2]= card3_bits;
-    CarBit[3]= card4_bits;CarBit[4]= card5_bits;CarBit[5]= card6_bits;
-    CarBit[6]= card7_bits;CarBit[7]= card8_bits;CarBit[8]= card9_bits;
-    CarBit[9]= card10_bits;CarBit[10]= card11_bits;CarBit[11]= card12_bits;
-    CarBit[12]= card13_bits;CarBit[13]= card14_bits;CarBit[14]= card15_bits;
-    CarBit[15]= card16_bits;CarBit[16]= card17_bits;CarBit[17]= card18_bits;
-    CarBit[18]= card19_bits;CarBit[19]= card20_bits;CarBit[20]= card21_bits;
-    CarBit[21]= card22_bits;CarBit[22]= card23_bits;CarBit[23]= card24_bits;
-    CarBit[24]= card25_bits;CarBit[25]= card26_bits;CarBit[26]= card27_bits;
-    CarBit[27]= card28_bits;CarBit[28]= card29_bits;CarBit[29]= card30_bits;
-    CarBit[30]= card31_bits;CarBit[31]= card32_bits;CarBit[32]= card33_bits;
-    CarBit[33]= card34_bits;CarBit[34]= card35_bits;CarBit[35]= card36_bits;
-    CarBit[36]= card37_bits;CarBit[37]= card38_bits;CarBit[38]= card39_bits;
-    CarBit[39]= card40_bits;CarBit[40]= card41_bits;CarBit[41]= card42_bits;
-    for(x=0;x<40;x++) Cards[x]=x+1;
+	for(x=0;x<40;x++) Cards[x]=x+1;
     x        = 10;
     y        = 10;
     width=640;
@@ -118,17 +118,28 @@ char *argv[];
     white     = WhitePixel( display, screen );
     colormap  = DefaultColormap( display, screen );  	
     blue	= GetColor( display, "gray", colormap, white );
-    green	= GetColor( display, "darkgreen", colormap, 2L );
+    green	= GetColor( display, "#117e1f", colormap, 2L );
     red	= GetColor( display, "red", colormap, white );
     navy	= GetColor( display, "darkblue", colormap, black ); 
+
+	Visual* visual = DefaultVisual(display, screen);
+    bmdcards = loadBitmapFromMemory(display, visual, screen, cards_bmp, cards_bmp_len);
+
+    if (!bmdcards) {
+        fprintf(stderr, "Erro ao carregar a imagem BMP\n");
+        XDestroyWindow(display, window);
+        XCloseDisplay(display);
+        return 1;
+    }
+
     horiz  = width;
     vert = height;
     fator = horiz/6;
     for(position=0;position<3;position++)
     {
-	Table[position].X= Table[position+3].X= fator*(position+1);
-	Table[position].Y= 25;
-	Table[position+3].Y= vert - 160;
+		Table[position].X= Table[position+3].X= fator*(position+1);
+		Table[position].Y= 25;
+		Table[position+3].Y= vert - 160;
     }
     Table[6].X= fator*5;
     Table[6].Y= (Table[0].Y+Table[3].Y)/2;
@@ -139,7 +150,7 @@ char *argv[];
     num_bitmaps = 0;     
     pixmap = CreatePixmap( display, rootwindow, width,
               height, DefaultDepth( display, screen ),
-	      black, green, &pixgc );
+		      black, green, &pixgc );
     XFreeGC( display, pixgc ); 
     CheckGeometry( argc, argv, DisplayWidth( display, screen ),
            DisplayHeight( display, screen ),
@@ -165,36 +176,29 @@ char *argv[];
     exit( 0 );
 }
 
-Draw_Cards(display, rootwindow, pixmap, pixgc, card, posx, posy )
-Display		*display;
-Window		rootwindow;
-Pixmap		pixmap;
-GC		pixgc;
-int		card, posx, posy;
+int Draw_Cards(Display *display, Window rootwindow,
+               Pixmap pixmap, GC pixgc,
+               int card, int posx, int posy)
 {
-    bitmap1  = XCreateBitmapFromData( display, rootwindow,
-		CarBit[card], CARD_WIDTH, CARD_HEIGHT );
-    if((card%2)==0)
-    	XSetForeground( display, pixgc, red );
-    else
-	XSetForeground( display, pixgc, black );	
-    XSetBackground( display, pixgc, white );	
-    XCopyPlane( display, bitmap1,
-			     pixmap, pixgc, 0, 0,
-			     CARD_WIDTH,
-			     CARD_HEIGHT,
-			     posx,
-			     posy,
-			     0x01 );
-    XFreePixmap( display, bitmap1 );
+    int src_x = pcard[card].x;
+    int src_y = pcard[card].y;
+
+	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, pixgc, bmdcards,
+              src_x, src_y, 0, 0,
+              CARDS_WIDTH, CARDS_HEIGHT);
+    XCopyArea(display, cardsPixmap, pixmap, pixgc,
+              0, 0,                          // origem da carta dentro do BMP
+              CARDS_WIDTH, CARDS_HEIGHT,     // tamanho da carta
+              posx, posy);                   // destino dentro do Pixmap
+    XFreePixmap(display, cardsPixmap);
+    return 0;
 }
 
-First_Openning(display, rootwindow, pixmap, pixgc, type )
-Display		*display;
-Window		rootwindow;
-Pixmap		pixmap;
-GC		pixgc;
-int 		type;
+
+int First_Openning(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int type)
 {
     Pixmap	bitmap1;
 	
@@ -217,58 +221,46 @@ int 		type;
 		(vert/2)-(super_height/2), super_width, super_height );
 }
 
-DrawPartCards(display, rootwindow, pixmap, pixgc, card, posx, posy, width )
-Display		*display;
-Window		rootwindow;
-Pixmap		pixmap;
-GC		pixgc;
-int		card, posx, posy, width;
+int DrawPartCards(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int card, int posx, int posy, int width)
 {
-    bitmap1  = XCreateBitmapFromData( display, rootwindow,
-		CarBit[card], CARD_WIDTH, CARD_HEIGHT );
-    if((card%2)==0)
-    	XSetForeground( display, pixgc, red );
-    else
-	XSetForeground( display, pixgc, black );	
-    XSetBackground( display, pixgc, white );	
-    XCopyPlane( display, bitmap1,
-			     pixmap, pixgc, 0, 0,
-			     width,
-			     CARD_HEIGHT,
-			     posx,
-			     posy,
-			     0x01 );
-    XFreePixmap( display, bitmap1 );
+	int src_x = pcard[card].x;
+    int src_y = pcard[card].y;
+
+	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, pixgc, bmdcards,
+              src_x, src_y, 0, 0,
+              CARDS_WIDTH, CARDS_HEIGHT);
+    XCopyArea(display, cardsPixmap, pixmap, pixgc,
+              0, 0,                          // origem da carta dentro do BMP
+              CARDS_WIDTH, CARDS_HEIGHT,     // tamanho da carta
+              posx, posy);                   // destino dentro do Pixmap
+    XFreePixmap(display, cardsPixmap);
+    return 0;
 }
 
-ClearCard(display, rootwindow, pixmap, pixgc, posx, posy, width )
-Display		*display;
-Window		rootwindow;
-Pixmap		pixmap;
-GC		pixgc;
-int		width;
+int ClearCard(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int posx, int posy, int width)
 {
-    bitmap1  = XCreateBitmapFromData( display, rootwindow,
-		CarBit[0], CARD_WIDTH, CARD_HEIGHT );
- 
-    XSetForeground( display, pixgc, green );
-    XSetBackground( display, pixgc, green );	
-    XCopyPlane( display, bitmap1,
-			     pixmap, pixgc, 0, 0,
-			     width,
-			     CARD_HEIGHT,
-			     posx,
-			     posy,
-			     0x01 );
-    XFreePixmap( display, bitmap1 );
+
+	int src_x = pcard[41].x;
+    int src_y = pcard[41].y;
+
+	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, pixgc, bmdcards,
+              src_x, src_y, 0, 0,
+              CARDS_WIDTH, CARDS_HEIGHT);
+    XCopyArea(display, cardsPixmap, pixmap, pixgc,
+              0, 0,                         // origem da carta dentro do BMP
+              CARDS_WIDTH, CARDS_HEIGHT,    // tamanho da carta
+              posx, posy);                  // destino dentro do Pixmap
+    XFreePixmap(display, cardsPixmap);
+    return 0;
 }
 
-EventLoop( display, window, pixmap, gc, width, height )
-Display     *display;
-Window      window;
-Pixmap      pixmap;
-GC          gc;
-int         *width, *height;
+int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height)
 {
     XEvent      event;
     KeySym      keysym;
@@ -296,7 +288,7 @@ int         *width, *height;
     switch(State)
     {
 	case 0:
-    		First_Openning(display, window, pixmap, gc, 0 );
+    	First_Openning(display, window, pixmap, gc, 0 );
 		State=WAITING;
 		break;
 	case NEW:
@@ -573,13 +565,15 @@ int         *width, *height;
     switch( event.type )
     {
         case Expose:
-                   Refresh( display, window, gc, pixmap,
+                Refresh( display, window, gc, pixmap,
 				     event.xexpose.x,
 				     event.xexpose.y,
 				     event.xexpose.width,
 				     event.xexpose.height );
+					 
     		   DrawScore( display, window, pixmap, gc, blue,
-			 white, white, 10 , horiz, vert, score ); 
+			 			  white, white, 10 , horiz, vert, score 
+						); 
 		   if(State==WAITING)
 			strcpy(Messa, 
 			   "This is the first version of the Xtruco...");
@@ -634,12 +628,7 @@ int       x, y, width, height;
 			height, x, y );
 }
 
-MakeButtons( display, window, gc, fore, back, font_id, h, v )
-Display		*display;
-Window		window;
-GC		gc;
-unsigned long	fore, back;
-Font		font_id;
+void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id, int h, int v )
 {
 	int	QuitApplication();
 	int	Button_Truco();
@@ -654,8 +643,8 @@ Font		font_id;
 
 	pos1 = horiz/2 -36- 20*10; 
 	pos2 = vert/2 - 48;
-	x = 390+CARD_WIDTH;
-	InvButton( display, window, pos1, pos2, x, CARD_HEIGHT, Button_Cut ); 
+	x = 390+CARDS_WIDTH;
+	InvButton( display, window, pos1, pos2, x, CARDS_HEIGHT, Button_Cut ); 
 	x = horiz- (BUTTON_WIDTH + 5);
 	y = vert-BUTTON_HEIGHT-5;
 	CreateButton( display, window, x, y, fore, back,
@@ -672,17 +661,15 @@ Font		font_id;
 	y -= BUTTON_HEIGHT + 5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "TRUCO", Button_Truco );
-	InvButton( display, window, Table[3].X, Table[3].Y, CARD_WIDTH, 
-		CARD_HEIGHT, card1 );
-	InvButton( display, window, Table[4].X, Table[4].Y, CARD_WIDTH, 
-		CARD_HEIGHT, card2 );
-	InvButton( display, window, Table[5].X, Table[5].Y, CARD_WIDTH, 
-		CARD_HEIGHT, card3 ); 
+	InvButton( display, window, Table[3].X, Table[3].Y, CARDS_WIDTH, 
+		CARDS_HEIGHT, card1 );
+	InvButton( display, window, Table[4].X, Table[4].Y, CARDS_WIDTH, 
+		CARDS_HEIGHT, card2 );
+	InvButton( display, window, Table[5].X, Table[5].Y, CARDS_WIDTH, 
+		CARDS_HEIGHT, card3 ); 
 }
 
-Button_Truco(display, window)
-Display		*display;
-Window		window;
+int Button_Truco(Display	*display, Window window)
 {
 	if((YourScore==MAXIMO-1) || (MyScore==MAXIMO-1))
 		Message=ERR_TRUCO;
@@ -690,18 +677,14 @@ Window		window;
 		Message=5;
 }
 
-Button_Yes(display, window)
-Display		*display;
-Window		window;
+int Button_Yes(Display	*display, Window window)
 {
 	ValGame+= Sum_Val;
 	Sum_Val=0;
 	Message=YES;
 }
 
-Button_No(display, window)
-Display		*display;
-Window		window;
+int Button_No(Display	*display, Window window)
 {
 	if(State>2)
 	{
@@ -710,9 +693,7 @@ Window		window;
 	}
 }
 
-Button_New( display, window )
-Display	*display;
-Window	window;
+int Button_New(Display	*display, Window window)
 {
 	State=NEW;
 	Begining= RANDOM(2)+1;
@@ -722,46 +703,32 @@ Window	window;
 	info.number_of_trucos=info.first_truco=0;
 }
 
-QuitApplication( display, window )
-Display	*display;
-Window	window;
+int QuitApplication( Display *display, Window	window)
 {
 	State=200;
 	fprintf(stderr,"\nSuper Truco (XTruco)\n"\
 		"By Marcos Martins Duma\n\n" );
 }
 
-card1( display, window, type )
-Display	*display;
-Window	window;
-int	type;
+int card1(Display *display, Window	window, int type)
 {
 	if(Table[3].card_state!=0)
 		Message=1*type;
 }
 
-card2( display, window, type )
-Display	*display;
-Window	window;
-int	type;
+int card2(Display *display, Window	window, int type)
 {
 	if(Table[4].card_state!=0)
 		Message=2*type;
 }
 
-card3( display, window, type )
-Display	*display;
-Window	window;
-int 	type;
+int card3(Display *display, Window	window, int type)
 {
 	if(Table[5].card_state!=0)
 		Message=3*type;
 }
 
-Button_Cut( display, window, type )
-Display	*display;
-Window	window;
-int 	type;
+int Button_Cut(Display *display, Window	window, int type)
 {
 	Message=4*type;
 	ValGame=1;
@@ -773,39 +740,7 @@ int 	type;
 	score1=score2=first=0;
 }
 
-ShowCards(display, window, pixmap, gc, card )
-Display		*display;
-Window		window;
-Pixmap		pixmap;
-GC		gc;
-int		card;
-{ 
-	int what;
-  	int a=0; 
-	int pos1, pos2; 
- 	
-	if(card>39) what=card; else what=40; 
-	pos1 = horiz/2 -36- 20*10; 
-	pos2 = vert/2 - 48; 
-	Draw_Cards( display, window, pixmap, gc, what,
-				 pos1, pos2 );
-	Refresh( display, window, gc, pixmap, pos1, pos2, 
-			CARD_WIDTH, CARD_HEIGHT );
-	XFlush( display );
-	Shuffle(); 
- 	pos1= horiz/2 -36- 20*10; 
-	pos2= vert/2 - 48; 
- 	for(a=1; a<41; a++) 
-	{ 
-		Draw_Cards( display, window, pixmap, gc, what,
-				 pos1, pos2 );
-		Refresh( display, window, gc, pixmap, pos1, pos2, 
-				CARD_WIDTH, CARD_HEIGHT );
-		pos1+= 10;
- 	} 
-} 
-
-Shuffle() 
+void Shuffle() 
 { 
 	int auxs[40]; 
 	int count=40,v; 
@@ -822,12 +757,36 @@ Shuffle()
 	} 
 } 
 
-Cuting(display, window, pixmap, gc, card, pos) 
-Display		*display;
-Window		window;
-Pixmap		pixmap;
-GC		gc;
-int		card, pos;
+int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card)
+{ 
+	int what;
+  	int a=0; 
+	int pos1, pos2; 
+ 	
+	if(card>39) what=card; else what=40; 
+	pos1 = horiz/2 -36- 20*10; 
+	pos2 = vert/2 - 48; 
+	Draw_Cards( display, window, pixmap, gc, what,
+				 pos1, pos2 );
+	Refresh( display, window, gc, pixmap, pos1, pos2, 
+			CARDS_WIDTH, CARDS_HEIGHT );
+	XFlush( display );
+	Shuffle(); 
+ 	pos1= horiz/2 -36- 20*10; 
+	pos2= vert/2 - 48; 
+ 	for(a=1; a<41; a++) 
+	{ 
+		Draw_Cards( display, window, pixmap, gc, what,
+				 pos1, pos2 );
+		Refresh( display, window, gc, pixmap, pos1, pos2, 
+				CARDS_WIDTH+10, CARDS_HEIGHT );
+		XFlush(display);
+		usleep(WAIT_VIEW);
+		pos1+= 10;
+ 	} 
+} 
+
+int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos)
 { 
 	int a=0, b, corta, corta2; 
 	int pos1, pos2, x; 
@@ -845,25 +804,29 @@ int		card, pos;
 	if(corta<40) 
 	{ 
 		x=0; b=10; 
-		while(x<CARD_WIDTH)
+		while(x<CARDS_WIDTH)
 		{ 
 			x+=b;
-			if(x>CARD_WIDTH) { b-=(x-CARD_WIDTH);x=CARD_WIDTH; }  
+			if(x>CARDS_WIDTH) { b-=(x-CARDS_WIDTH);x=CARDS_WIDTH; }  
 			pos-=b; 
 			DrawPartCards( display, window, pixmap, gc, what,
 				 pos, pos2, x );
 			Refresh( display, window, gc, pixmap, pos, pos2, 
-				x, CARD_HEIGHT );
+				x, CARDS_HEIGHT );
+		XFlush(display);
+		usleep(WAIT_VIEW); 
 		}
 		pos1-=b;
 		for(a=pos-10; a>=pos1; a-=10) 
 		{ 
 			DrawPartCards( display, window, pixmap, gc, what,
-				 a, pos2, CARD_WIDTH );
+				 a, pos2, CARDS_WIDTH );
 			ClearCard( display, window, pixmap, gc,
-				 a+CARD_WIDTH, pos2, 10 );
+				 a+CARDS_WIDTH, pos2, 10 );
 			Refresh( display, window, gc, pixmap, a, pos2, 
-				CARD_WIDTH+10, CARD_HEIGHT );
+				CARDS_WIDTH+10, CARDS_HEIGHT );
+		XFlush(display);
+		usleep(WAIT_VIEW); 
  		}
 		pos=a;
 	}
@@ -872,26 +835,34 @@ int		card, pos;
 	for(a=400; a>=(10*corta2); a-=10) 
 	{ 
 		DrawPartCards( display, window, pixmap, gc, what,
-				 pos1+a, pos2, CARD_WIDTH );
+				 pos1+a, pos2, CARDS_WIDTH );
 		ClearCard( display, window, pixmap, gc,
-				 pos1+a+CARD_WIDTH, pos2, 10 );
+				 pos1+a+CARDS_WIDTH, pos2, 10 );
 		Refresh( display, window, gc, pixmap, pos1+a, pos2, 
-				CARD_WIDTH+10, CARD_HEIGHT );
+				CARDS_WIDTH+10, CARDS_HEIGHT );
+		XFlush(display);
+		usleep(WAIT_VIEW); 
+		
 	} 
 	corta2=pos1+a+10;
 	for(a=pos;a<corta2; a+=10) 
+
 	{ 
 		ClearCard( display, window, pixmap, gc,
 				 a, pos2, 10 );
 		DrawPartCards( display, window, pixmap, gc, what,
-				 a+10, pos2, CARD_WIDTH );
+				 a+10, pos2, CARDS_WIDTH );
 		Refresh( display, window, gc, pixmap, a, pos2, 
-				CARD_WIDTH+10, CARD_HEIGHT );
+				CARDS_WIDTH+20, CARDS_HEIGHT );
+		XFlush(display);
+		usleep(WAIT_VIEW); 
 	} 
 	ClearCard( display, window, pixmap, gc,
-			 corta2, pos2, CARD_WIDTH );
+			 corta2, pos2, CARDS_WIDTH );
  	Refresh( display, window, gc, pixmap, corta2, pos2, 
-				CARD_WIDTH, CARD_HEIGHT );
+				CARDS_WIDTH, CARDS_HEIGHT );
+	XFlush(display);
+	usleep(WAIT_VIEW); 
 	b=0; 
 	for(a=corta; a<40; a++) Cards[(b++)]=c[a]; 
 	for(a=0; a<corta; a++) Cards[(b++)]= c[a];
@@ -914,12 +885,7 @@ int		card, pos;
 	}
 } 
  
-TableCards (display, window, pixmap, gc, card ) 
-Display		*display;
-Window		window;
-Pixmap		pixmap;
-GC		gc;
-int		card;
+int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card)
 { 
 	int a, what;
 
@@ -933,29 +899,35 @@ int		card;
 			Draw_Cards( display, window, pixmap, gc, what,
 				 Table[a].X, Table[a].Y);
 			Refresh( display, window, gc, pixmap, Table[a].X,
-				 Table[a].Y, CARD_WIDTH, CARD_HEIGHT );
+				 Table[a].Y, CARDS_WIDTH, CARDS_HEIGHT );
 		}
 		else
 		{
 			ClearCard( display, window, pixmap, gc,
-				 Table[a].X, Table[a].Y, CARD_WIDTH);
+				 Table[a].X, Table[a].Y, CARDS_WIDTH);
 			Refresh( display, window, gc, pixmap, Table[a].X,
-				 Table[a].Y, CARD_WIDTH, CARD_HEIGHT );
+				 Table[a].Y, CARDS_WIDTH, CARDS_HEIGHT );
 		}
 	}
 }
 
 #define	SC_WIDTH	150
 
+void ShowText( Display *display, Window window, GC gc, char text[], int pos1, int pos2)
+{
+	int tamanho;
 
-DrawScore( display, window, pixmap, gc, c1, c2, c3, f, h, v, draw_score )
-Display			*display;
-Window			window;
-Pixmap			pixmap;
-GC			gc;
-unsigned long		c1, c2, c3; 	/* colors */
-int			f, h, v;    	/* width_fonte, horiz, vert */ 
-TYPE_SCORE		*draw_score;    /* Struct for Score (val_scores) */ 
+	tamanho= strlen( text );
+	XDrawImageString( display, window, gc,
+		pos1, pos2,
+		text, tamanho );
+}
+
+
+int DrawScore( Display *display, Window window, Pixmap pixmap, GC gc, 
+		        unsigned long c1, unsigned long c2, unsigned long c3, /* colors */
+				int f, int h, int v,    	                          /* width_fonte, horiz, vert */ 
+				TYPE_SCORE *draw_score                                /* Struct for Score (val_scores) */ )
 {
 	int	p1, p2, l, a, m, n, SC_HEIGHT;
 	char	Scores[10];
@@ -983,28 +955,8 @@ TYPE_SCORE		*draw_score;    /* Struct for Score (val_scores) */
 	sprintf(Scores," %2d", score[1].val_score );
 	ShowText( display, window, gc, Scores, p1+5+l/2, p2+3*f );
 }	
-	
-ShowText( display, window, gc, text, pos1, pos2 )
-Display	*display;
-Window	window;
-GC	gc;
-char	text[];
-int	pos1, pos2;
-{
-	int tamanho;
 
-	tamanho= strlen( text );
-	XDrawImageString( display, window, gc,
-		pos1, pos2,
-		text, tamanho );
-}
-
-TalkMachine( display, window, gc, text, type )
-Display		*display;
-Window		window;
-GC		gc;
-char		*text;
-int		type;
+int TalkMachine(Display *display, Window window, GC gc, char *text, int	type)
 {
 	int	tam, pos1, pos2, a, b;
 	char	buffer[80];
@@ -1030,7 +982,7 @@ int		type;
 }
 
 
-FirstGame()
+int FirstGame()
 {
 	struct {
 			int v;
@@ -1100,7 +1052,7 @@ FirstGame()
 	return (ret);
 }
 
-SecondGame()
+int SecondGame()
 {
 	struct {
 			int v;
@@ -1171,7 +1123,7 @@ SecondGame()
 	return (ret);
 }
 
-ThirdGame()
+int ThirdGame()
 {
 	int a;
 	int ret;
@@ -1185,8 +1137,7 @@ ThirdGame()
 	return (ret);
 }
 
-CanSayTruco(val1, val2)
-int val1, val2;
+int CanSayTruco(int val1, int val2)
 {
 	int a,c1,c2,ret,aleat;
 
@@ -1259,8 +1210,7 @@ int val1, val2;
 	return(ret);
 }
 
-AcceptTruco(val1)
-int	val1;
+int AcceptTruco(int val1)
 {
 	int a,b,c1,c2,c3,ret,t;
 	int c[3];
@@ -1347,8 +1297,7 @@ int	val1;
 	return(ret);
 }
 
-RANDOM( val_score )
-int	val_score;
+int RANDOM( int val_score )
 {
 	int ret;
 

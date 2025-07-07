@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*html": "html",
+        "*.html": "html",
+        "*.xbm": "c",
+        "xbook.h": "c"
+    }
+}

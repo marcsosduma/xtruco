@@ -13,7 +13,7 @@ LIBRARIES   = $(shell pkg-config --libs x11)
 OPC         = -DIPC_OK
 
 CFILES      = xtruco.c bitmap.c cursor.c display.c event.c gc.c pixmap.c\
-              topwind.c window.c color.c button.c font.c read.c
+              topwind.c window.c color.c button.c font.c read.c loadbmp.c
 
 CC          = gcc -O2 -g -Dlinux -DX11R6 $(OPC)
 

@@ -73,4 +73,9 @@ XFontStruct *LoadFont();
 XImage* loadBitmapFromMemory(Display* display, Visual* visual, int screen,
                              const unsigned char* bmpData, unsigned int bmpSize);
 
-CheckGeometry( argc, argv, screen_width, screen_height, x, y, width, height );
+int CheckGeometry(  int argc, char *argv[], int screen_width, int screen_height, 
+					int *x, int *y, int *width, int *height);
+
+int SetGC( Display *display, GC	gc, unsigned long fore, unsigned long back);
+
+int QuitX( Display *display, char error_message[], char error_file[]);

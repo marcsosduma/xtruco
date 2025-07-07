@@ -18,11 +18,8 @@ struct {
 int		inv_used = 0;
 int		qual=1;
 
-InvButton( display, window, x, y, c, a, function )
-Display		*display;
-Window		window;
-int		x, y, c, a;
-int		(*function) ();
+Bool InvButton(Display *display, Window window, int x, int y, int c, int a,
+               int (*function)(Display *, Window, int))
 {
 	if( inv_used < ( INV_MAX_BUTTONS - 1) )
 	{
@@ -39,9 +36,29 @@ int		(*function) ();
 	return( False);
 }
 
-InvEvent( display, event )
-Display	*display;
-XEvent	*event;
+
+int InvFind( Display *display, Window window, int p1, int p2)
+{
+	int which_button;
+	int x, y, c, a;
+
+	for( which_button = 0; which_button < inv_used; which_button++ )
+	{
+		if( ( window == InvButtons[ which_button ].w ) &&
+		  ( display == InvButtons[ which_button ].display ) )
+		{
+			x= InvButtons[ which_button ].x;
+			y= InvButtons[ which_button ].y;
+			c= InvButtons[ which_button ].largura;
+			a= InvButtons[ which_button ].altura;
+			if((p1>=x) && (p1<=(x+c)) && (p2>=y) && (p2<=(y+a))) 
+				return( which_button );
+		}
+	}
+	return ( -1 );
+}
+
+int InvEvent( Display *display,  XEvent	*event)
 {
 	int	which_button;
 	
@@ -62,28 +79,4 @@ XEvent	*event;
 			break;
 	}
 	return( False );
-}
-
-InvFind( display, window, p1, p2 )
-Display *display;
-Window	window;
-int p1, p2;
-{
-	int which_button;
-	int x, y, c, a;
-
-	for( which_button = 0; which_button < inv_used; which_button++ )
-	{
-		if( ( window == InvButtons[ which_button ].w ) &&
-		  ( display == InvButtons[ which_button ].display ) )
-		{
-			x= InvButtons[ which_button ].x;
-			y= InvButtons[ which_button ].y;
-			c= InvButtons[ which_button ].largura;
-			a= InvButtons[ which_button ].altura;
-			if((p1>=x) && (p1<=(x+c)) && (p2>=y) && (p2<=(y+a))) 
-				return( which_button );
-		}
-	}
-	return ( -1 );
 }

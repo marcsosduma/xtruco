@@ -6,10 +6,7 @@ and fill the screen with colored fields
 
 #include "xbook.h"
 
-GC MakeGC( display, drawable, fore, back )
-Display		*display;
-Drawable	drawable;
-unsigned long	fore, back;
+GC MakeGC( Display *display, Drawable drawable, unsigned long fore, unsigned long back)
 {
 	GC	gc;
 	XGCValues	gcvalues;
@@ -27,10 +24,7 @@ unsigned long	fore, back;
 	return (gc);
 }
 
-SetGC( display, gc, fore, back )
-Display *display;
-GC	gc;
-unsigned long	fore, back;
+int SetGC( Display *display, GC	gc, unsigned long fore, unsigned long back)
 {
 	XSetForeground( display, gc, fore );
 	XSetBackground( display, gc, back );

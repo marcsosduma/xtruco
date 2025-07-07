@@ -45,11 +45,7 @@ long	events;
 	return( window );
 }
 
-CheckGeometry( argc, argv, screen_width, screen_height, x, y, width, height )
-int argc;
-char *argv[];
-int screen_width, screen_height;
-int *x, *y, *width, *height;
+int CheckGeometry( int argc, char *argv[], int screen_width, int screen_height, int *x, int *y, int *width, int *height)
 {
 	int status;
 	int x1, y1, width1, height1;
@@ -83,21 +79,14 @@ int *x, *y, *width, *height;
 	}
 }
 
-MapWindow( display, window )
-Display *display;
-Window window;
+int MapWindow( Display *display, Window window)
 {
 	XMapRaised( display, window );
 	XMapSubwindows( display, window );
 	XFlush( display );
 }
 
-NameWindow( display, window, name, class_name, class_type )
-Display *display;
-Window window;
-char *name;
-char *class_name;
-char *class_type;
+int NameWindow( Display *display, Window window, char *name, char *class_name, char *class_type)
 {
 	XClassHint	*classhints;
 #ifdef X11R4
@@ -121,10 +110,7 @@ char *class_type;
 	(void) strcpy( AppName, name );
 }
 
-SetWMHints( display, window, icon )
-Display *display;
-Window window;
-Pixmap icon;
+int SetWMHints( Display *display, Window window, Pixmap icon)
 {
 	XWMHints	*wmhints;
 #ifdef X11R4
@@ -158,10 +144,7 @@ Pixmap icon;
 	}
 }
 
-SetNormalHints( display, window, x, y, width, height )
-Display		*display;
-Window		window;
-int		x, y, width, height;
+int SetNormalHints( Display *display, Window window, int x, int y, int width, int height)
 {
 	XSizeHints	*sizehints;
 #ifdef X11R4
@@ -191,8 +174,7 @@ int		x, y, width, height;
 	}
 }
 
-GetAppName( name )
-char *name;
+int GetAppName( char *name )
 {
 	(void) strcpy(name , AppName );
 }

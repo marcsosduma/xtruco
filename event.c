@@ -8,52 +8,7 @@ X11 events...
 
 Time LastEventTime = CurrentTime;
 
-CheckEvent( display, want_exposes, width, height, event, keysym )
-Display *display;
-int 	want_exposes;
-int 	width, height;
-XEvent	*event;
-KeySym	*keysym;
-{
-	int status;
-
-	status = False;
-	if( XPending( display ) > 0 )
-	{
-		XNextEvent( display, event );
-		status = ParseEvent( event,
-			want_exposes,
-			width, height,
-			keysym );
-	}
-	return ( status );
-}
-
-NextEvent( display, want_exposes, width, height, event, keysym )
-Display	*display;
-int	want_exposes;
-int	width, height;
-XEvent	*event;
-KeySym	*keysym;
-{
-	int 	status;
-
-	status = False;
-	while( status == False )
-	{
-		XNextEvent( display, event );
-		status = ParseEvent( event,
-			want_exposes,
-			width, height,
-			keysym );
-	}
-}
-
-ParseEvent( event, want_exposes, width, height, keysym )
-XEvent	*event;
-int	want_exposes;
-int 	width, height;
-KeySym	*keysym;
+int ParseEvent( XEvent *event, int want_exposes, int width, int height, KeySym *keysym)
 {
 	int	status;
 
@@ -110,6 +65,37 @@ KeySym	*keysym;
 			break;
 	}
 	return ( status );
+}
+
+int CheckEvent( Display *display, int want_exposes, int width, int height, XEvent *event, KeySym *keysym)
+{
+	int status;
+
+	status = False;
+	if( XPending( display ) > 0 )
+	{
+		XNextEvent( display, event );
+		status = ParseEvent( event,
+			want_exposes,
+			width, height,
+			keysym );
+	}
+	return ( status );
+}
+
+int NextEvent( Display *display, int want_exposes, int width, int height, XEvent *event, KeySym *keysym)
+{
+	int 	status;
+
+	status = False;
+	while( status == False )
+	{
+		XNextEvent( display, event );
+		status = ParseEvent( event,
+			want_exposes,
+			width, height,
+			keysym );
+	}
 }
 
 KeySym Key2Keysym( keyevent )

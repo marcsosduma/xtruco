@@ -5,12 +5,18 @@ routines for creating and deleting X11 pixmaps.
 
 #include "xbook.h"
 
-Pixmap CreatePixmap( display, window, width, height, depth, fore, back, gc)
-Display		*display;
-Window		window;
-int		width, height, depth;
-unsigned long	fore, back;
-GC		*gc;
+int ClearPixmap( Display * display, Pixmap pixmap, GC gc, unsigned long fore,
+	unsigned long back, int width, int height )
+{
+	XSetForeground( display, gc, back );
+	XFillRectangle( display, pixmap, gc, 
+		0, 0, width, height );
+	XSetForeground( display, gc, fore );
+}
+
+
+Pixmap CreatePixmap( Display *display, Window window, int width, int height, 
+	int depth, unsigned long fore, unsigned long back, GC * gc)
 {
 	Pixmap pixmap;
 
@@ -25,18 +31,5 @@ GC		*gc;
 	*gc = MakeGC( display, pixmap, fore, back );
 	ClearPixmap( display, pixmap, *gc, fore, back, width, height );
 	return( pixmap );
-}
-
-ClearPixmap( display, pixmap, gc, fore, back, width, height )
-Display		*display;
-Pixmap		pixmap;
-GC		gc;
-unsigned long	fore, back;
-int		width, height;
-{
-	XSetForeground( display, gc, back );
-	XFillRectangle( display, pixmap, gc, 
-		0, 0, width, height );
-	XSetForeground( display, gc, fore );
 }
 

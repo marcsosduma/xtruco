@@ -12,10 +12,34 @@ QuitX(display, error_message, error_file )
 
 #include "xbook.h"
 
-Display *SetUpDisplay( argc, argv, screen )
-int argc;
-char *argv[];
-int *screen;
+void exit(int );
+
+int CheckDisplayName( int argc, char *argv[], char display_name[])
+{
+	int counter;
+	
+	display_name[ 0 ] = '\0';
+	counter = 1;
+	while( counter < argc )
+	{
+		if( strncmp( argv[ counter ], "-display", 8 )==0 )
+		{
+			counter++;
+			if( counter < argc )
+			{
+				(void) strcpy( display_name, argv[ counter ] );
+			}
+			else
+			{
+				(void) fprintf( stderr,
+					"Error: usage is -display DisplayName\n" );
+			}
+		}
+		counter++;
+	}
+}
+
+Display *SetUpDisplay(int argc, char *argv[], int *screen)
 {
 	char display_name[ 120 ];
 	Display *display;
@@ -45,38 +69,7 @@ int *screen;
 	return ( display );
 }
 
-CheckDisplayName( argc, argv, display_name )
-int argc;
-char *argv[];
-char display_name[];
-{
-	int counter;
-	
-	display_name[ 0 ] = '\0';
-	counter = 1;
-	while( counter < argc )
-	{
-		if( strncmp( argv[ counter ], "-display", 8 )==0 )
-		{
-			counter++;
-			if( counter < argc )
-			{
-				(void) strcpy( display_name, argv[ counter ] );
-			}
-			else
-			{
-				(void) fprintf( stderr,
-					"Error: usage is -display DisplayName\n" );
-			}
-		}
-		counter++;
-	}
-}
-
-CloseDisplay( display, window, gc )
-Display *display;
-Window window;
-GC gc;
+int CloseDisplay( Display *display, Window window, GC gc)
 {
 	XFreeGC( display, gc);
 	XDestroySubwindows( display, window );
@@ -85,9 +78,7 @@ GC gc;
 	XCloseDisplay( display );
 }
 
-QuitX( display, error_message, error_file )
-Display *display;
-char error_message[], error_file[];
+int QuitX( Display *display, char error_message[], char error_file[])
 {
 	(void) fprintf(stderr, "ERROR: %s%s\n",
 		error_message,

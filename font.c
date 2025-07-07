@@ -5,12 +5,33 @@ X11 routines for loading a font
 
 #include "xbook.h"
 
-XFontStruct *LoadFont( display, gc, argc, argv, default_name )
-Display 	*display;
-GC		gc;
-int		argc;
-char		*argv[];
-char		default_name[];
+
+int CheckFontName( int	argc, char	*argv[], char	fontname[])
+{
+	int counter;
+	
+	counter = 1;
+	while( counter < argc )
+	{
+		if( ( strncmp( argv[ counter ], "-font", 5 ) == 0 ) ||
+		  ( strncmp( argv[ counter ], "-fn", 3 ) == 0 ) )
+		{
+			counter++;
+			if( counter < argc )
+			{
+				(void) strcpy( fontname, argv[counter] );
+			}
+			else
+			{
+				(void) fprintf( stderr,
+				  "Error: the usage mode is -font FontName\n" );
+			}
+		}
+		counter++;
+	}
+}
+
+XFontStruct *LoadFont( Display 	*display, GC gc, int argc, char *argv[], char default_name[])
 {
 	XFontStruct	*font;
 	char		name[ BUFSIZE + 1 ];
@@ -37,32 +58,3 @@ char		default_name[];
 	}
 	return ( font );
 }
-
-CheckFontName( argc, argv, fontname )
-int	argc;
-char	*argv[];
-char	fontname[];
-{
-	int counter;
-	
-	counter = 1;
-	while( counter < argc )
-	{
-		if( ( strncmp( argv[ counter ], "-font", 5 ) == 0 ) ||
-		  ( strncmp( argv[ counter ], "-fn", 3 ) == 0 ) )
-		{
-			counter++;
-			if( counter < argc )
-			{
-				(void) strcpy( fontname, argv[counter] );
-			}
-			else
-			{
-				(void) fprintf( stderr,
-				  "Error: the usage mode is -font FontName\n" );
-			}
-		}
-		counter++;
-	}
-}
-

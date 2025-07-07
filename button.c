@@ -23,14 +23,8 @@ typedef struct
 ButtonStruct	AppButtons[ MAX_BUTTONS + 1 ];
 int		buttons_used = 0;
 
-CreateButton( display, window, x, y, fore, back, font_id, text, function )
-Display		*display;
-Window		window;
-int		x, y;
-unsigned long	fore, back;
-Font		font_id;
-char		text[];
-int		(*function) ();
+int CreateButton( Display *display, Window window, int x, int y, unsigned long fore, unsigned long back, 
+			  Font font_id, char text[], int (*function) ())
 {
 	Window	w;
 	GC	gc;
@@ -69,9 +63,77 @@ int		(*function) ();
 	return( False);
 }
 
-ButtonEvent( display, event )
-Display	*display;
-XEvent	*event;
+int ButtonText( Display	*display, Window window, GC gc, char text[], int length)
+{
+	XDrawImageString( display, window, gc,
+		5, 15,
+		text, length );
+}
+
+
+int ButtonHighlight( Display	*display, int	which_button)
+{
+	XFillRectangle( display,
+		AppButtons[ which_button ].w,
+		AppButtons[ which_button ].gc,
+		0, 0,
+		BUTTON_WIDTH - 5, BUTTON_HEIGHT - 5 );
+	SetGC( display,
+		AppButtons[ which_button ].gc,
+		AppButtons[ which_button ].back,
+		AppButtons[ which_button ].fore );
+	ButtonText( display,
+		AppButtons[ which_button ].w,
+		AppButtons[ which_button ].gc,
+		AppButtons[ which_button ].text,
+		AppButtons[ which_button ].length );
+	SetGC( display,
+		AppButtons[ which_button ].gc,
+		AppButtons[ which_button ].fore,
+		AppButtons[ which_button ].back );
+	XFlush( display );
+}
+
+int ButtonRedraw( Display *display, int which_button)
+{
+	XDrawRectangle( display,
+		AppButtons[ which_button ].w,
+		AppButtons[ which_button ].gc,
+		0, 0,
+		BUTTON_WIDTH - 6, BUTTON_HEIGHT - 6 );
+	ButtonText( display,
+		AppButtons[ which_button ].w,
+		AppButtons[ which_button ].gc,
+		AppButtons[ which_button ].text,
+		AppButtons[ which_button ].length );
+}
+
+int ButtonExec( Display	*display, int	which_button)
+{
+	ButtonHighlight( display, which_button );
+	(AppButtons[ which_button ].function)(display,
+		AppButtons[ which_button ].parent );
+	XClearWindow( display,
+		AppButtons[ which_button ].w );
+	ButtonRedraw( display, which_button );
+}
+
+int ButtonFind( Display *display,Window	window)
+{
+	int which_button;
+
+	for( which_button = 0; which_button < buttons_used; which_button++ )
+	{
+		if( ( window == AppButtons[ which_button ].w ) &&
+		  ( display == AppButtons[ which_button ].display ) )
+		{
+			return( which_button );
+		}
+	}
+	return ( -1 );
+}
+
+int ButtonEvent( Display *display, XEvent *event)
 {
 	int	which_button;
 	
@@ -98,86 +160,4 @@ XEvent	*event;
 	}
 	XFlush( display );
 	return( False );
-}
-
-ButtonExec( display, which_button )
-Display	*display;
-int	which_button;
-{
-	ButtonHighlight( display, which_button );
-	(AppButtons[ which_button ].function)(display,
-		AppButtons[ which_button ].parent );
-	XClearWindow( display,
-		AppButtons[ which_button ].w );
-	ButtonRedraw( display, which_button );
-}
-
-ButtonHighlight( display, which_button )
-Display	*display;
-int	which_button;
-{
-	XFillRectangle( display,
-		AppButtons[ which_button ].w,
-		AppButtons[ which_button ].gc,
-		0, 0,
-		BUTTON_WIDTH - 5, BUTTON_HEIGHT - 5 );
-	SetGC( display,
-		AppButtons[ which_button ].gc,
-		AppButtons[ which_button ].back,
-		AppButtons[ which_button ].fore );
-	ButtonText( display,
-		AppButtons[ which_button ].w,
-		AppButtons[ which_button ].gc,
-		AppButtons[ which_button ].text,
-		AppButtons[ which_button ].length );
-	SetGC( display,
-		AppButtons[ which_button ].gc,
-		AppButtons[ which_button ].fore,
-		AppButtons[ which_button ].back );
-	XFlush( display );
-}
-
-ButtonRedraw( display, which_button )
-Display	*display;
-int	which_button;
-{
-	XDrawRectangle( display,
-		AppButtons[ which_button ].w,
-		AppButtons[ which_button ].gc,
-		0, 0,
-		BUTTON_WIDTH - 6, BUTTON_HEIGHT - 6 );
-	ButtonText( display,
-		AppButtons[ which_button ].w,
-		AppButtons[ which_button ].gc,
-		AppButtons[ which_button ].text,
-		AppButtons[ which_button ].length );
-}
-
-ButtonText( display, window, gc, text, length )
-Display	*display;
-Window	window;
-GC	gc;
-char	text[];
-int	length;
-{
-	XDrawImageString( display, window, gc,
-		5, 15,
-		text, length );
-}
-
-ButtonFind( display, window )
-Display *display;
-Window	window;
-{
-	int which_button;
-
-	for( which_button = 0; which_button < buttons_used; which_button++ )
-	{
-		if( ( window == AppButtons[ which_button ].w ) &&
-		  ( display == AppButtons[ which_button ].display ) )
-		{
-			return( which_button );
-		}
-	}
-	return ( -1 );
 }

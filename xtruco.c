@@ -81,6 +81,25 @@ XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0
 XImage* bmdcards = NULL;
 int q=2;
 
+// 
+void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id);
+int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int y, int width, int height);
+int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card);
+int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card);
+int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos);
+int TalkMachine(Display *display, Window window, GC gc, char *text, int	type);
+int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height);
+int DrawScore( Display *display, Window window, Pixmap pixmap, GC gc, 
+		        unsigned long c1, unsigned long c2, unsigned long c3, /* colors */
+				int f, int h, int v,    	                          /* width_fonte, horiz, vert */ 
+				TYPE_SCORE *draw_score                                /* Struct for Score (val_scores) */ );
+
+int FirstGame();
+int SecondGame();
+int ThirdGame();
+int AcceptTruco(int val1);
+int CanSayTruco(int val1, int val2);
+int RANDOM( int val_score );
 
 int main( argc, argv )
 int argc;
@@ -164,6 +183,7 @@ char *argv[];
     SetWMHints( display, window, icon );
     NameWindow( display, window, "Super Truco", "Super Truco", "Super Truco" );
     MakeButtons( display, window, gc, white, navy, font->fid );
+	
     MapWindow( display, window );
     while( EventLoop( display, window, pixmap, gc,
 			       &width, &height ) == True );
@@ -597,23 +617,18 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     return( True );
 }
 
-Refresh( display, window, gc, pixmap, x, y, width, height )
-Display   *display;
-Window    window;
-GC        gc;
-Pixmap    pixmap;
-int       x, y, width, height;
+int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int y, int width, int height)
 {
     if( ( x > horiz ) || ( y > vert ) )
     {
-        return;
+        return 0;
     }
     if( ( x + width ) > horiz )
     {
         width = horiz - x;
         if( width < 0 )
         {
-             return;
+             return 0;
         }
     }
     if( ( y + height ) > vert )
@@ -621,14 +636,14 @@ int       x, y, width, height;
         height = vert - y;
         if( height < 0 )
 	{
-	    return;
+	    return 0;
 	}
     }
     XCopyArea( display, pixmap, window, gc, x, y, width,
 			height, x, y );
 }
 
-void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id, int h, int v )
+void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id)
 {
 	int	QuitApplication();
 	int	Button_Truco();

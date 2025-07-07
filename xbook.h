@@ -79,3 +79,25 @@ int CheckGeometry(  int argc, char *argv[], int screen_width, int screen_height,
 int SetGC( Display *display, GC	gc, unsigned long fore, unsigned long back);
 
 int QuitX( Display *display, char error_message[], char error_file[]);
+
+int SetNormalHints( Display *display, Window window, int x, int y, int width, int height);
+
+int CreateButton( Display *display, Window window, int x, int y, unsigned long fore, unsigned long back, 
+			  Font font_id, char text[], int (*function) ());
+
+Bool InvButton(Display *display, Window window, int x, int y, int c, int a,
+               int (*function)(Display *, Window, int));
+
+int InvEvent( Display *display,  XEvent	*event);
+
+int ButtonEvent( Display *display, XEvent *event);
+
+int CheckEvent( Display *display, int want_exposes, int width, int height, XEvent *event, KeySym *keysym);
+
+int CloseDisplay( Display *display, Window window, GC gc);
+
+int MapWindow( Display *display, Window window);
+
+int NameWindow( Display *display, Window window, char *name, char *class_name, char *class_type);
+
+int SetWMHints( Display *display, Window window, Pixmap icon);

@@ -24,10 +24,13 @@ header files.
 
 #define PROP_NAME "__XBOOK"
 
-#define EVENT_MASK	(long)( ButtonPressMask	|\
-				KeyPressMask	|\
-				ExposureMask	|\
-				StructureNotifyMask )
+#define EVENT_MASK (long)( ButtonPressMask   | \
+                           KeyPressMask      | \
+                           ExposureMask      | \
+                           StructureNotifyMask | \
+                           EnterWindowMask   | \
+                           PointerMotionMask | \
+                           LeaveWindowMask )
 
 #define DEFAULT_CURSOR	XC_left_ptr
 
@@ -82,8 +85,10 @@ int QuitX( Display *display, char error_message[], char error_file[]);
 
 int SetNormalHints( Display *display, Window window, int x, int y, int width, int height);
 
-int CreateButton( Display *display, Window window, int x, int y, unsigned long fore, unsigned long back, 
-			  Font font_id, char text[], int (*function) ());
+int CreateButton(Display *display, Window parent, int x, int y,
+                 unsigned long fore, unsigned long back,
+                 Font font, const char *text,
+                 int (*callback)(Display *, Window));
 
 Bool InvButton(Display *display, Window window, int x, int y, int c, int a,
                int (*function)(Display *, Window, int));

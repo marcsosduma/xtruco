@@ -63,6 +63,10 @@ int ParseEvent( XEvent *event, int want_exposes, int width, int height, KeySym *
 		case MappingNotify:
 			XRefreshKeyboardMapping( (XMappingEvent *) event );
 			break;
+		case EnterNotify:
+		case LeaveNotify:
+			status = True;
+			break;
 	}
 	return ( status );
 }

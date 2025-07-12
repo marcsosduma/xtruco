@@ -42,6 +42,7 @@ long	events;
 		QuitX( display, "",
 			"Error: Could not open window." );
 	}
+	XMapWindow(display, window);
 	return( window );
 }
 

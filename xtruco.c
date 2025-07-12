@@ -68,6 +68,10 @@ int 			State=0, Message=0, Cards[40];
 char   			Messa[80];
 static unsigned char    *CarBit[TOTAL];
 static unsigned long    black, white, green, blue, red, navy;
+unsigned long green_back = 0x008000;     // verde médio
+unsigned long green_highlight = 0x90EE90; // verde claro (lightgreen)
+unsigned long green_shadow = 0x006400;   // verde escuro
+int font_height = 12;
 Pixmap			bitmap1;
 int			pc, you, Who_Play, You_Play, first, MyScore, YourScore;
 int			alert, Sum_Val, ValGame, danger, Begining;
@@ -89,11 +93,10 @@ int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card)
 int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos);
 int TalkMachine(Display *display, Window window, GC gc, char *text, int	type);
 int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height);
-int DrawScore( Display *display, Window window, Pixmap pixmap, GC gc, 
-		        unsigned long c1, unsigned long c2, unsigned long c3, /* colors */
-				int f, int h, int v,    	                          /* width_fonte, horiz, vert */ 
-				TYPE_SCORE *draw_score                                /* Struct for Score (val_scores) */ );
-
+int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc, 
+              unsigned long c_back, unsigned long c_highlight, unsigned long c_shadow,
+              int f, int horiz, int vert,
+              TYPE_SCORE *draw_score);
 int FirstGame();
 int SecondGame();
 int ThirdGame();
@@ -196,6 +199,16 @@ char *argv[];
     exit( 0 );
 }
 
+void play_sound() {
+    const char *sound = "/usr/share/sounds/freedesktop/stereo/bell.oga";
+    if (access(sound, F_OK) == 0) {
+        int rc = system("paplay /usr/share/sounds/freedesktop/stereo/bell.oga 2>/dev/null &");
+        (void)rc;
+    } else {
+        fprintf(stderr, "Som padrão não encontrado: %s\n", sound);
+    }
+}
+
 int Draw_Cards(Display *display, Window rootwindow,
                Pixmap pixmap, GC pixgc,
                int card, int posx, int posy)
@@ -293,6 +306,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     if((status= CheckEvent( display, True, *width, *height,
 			&event, &keysym ))==True)
     {
+	printf("Evento %d recebido\n", event.type);
 	Last_State= State;
     	if( ButtonEvent( display, &event ) == True )
 	{
@@ -318,8 +332,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Cuting(display, window, pixmap, gc, BACK, 480 );
     		First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
-    		DrawScore( display, window, pixmap, gc, blue,
-		     white, white, 10 , horiz, vert, score );
+    		DrawScore(display, window, pixmap, gc, green_back, 
+			green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
 		TalkMachine( display, window, gc, Messa, 1 );
 		for(what=0;what<9;what++) Table[what].card_state=0;
@@ -417,6 +431,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			resulters=CanSayTruco(position, you);
 		if(resulters>=1)
 		{
+			play_sound();
 			Who_Say_Truco=1;
 			if(ValGame==1) Sum_Val=2; else Sum_Val=3;
 			sprintf(Messa, "Truco (%2d). Do you accept?...", 
@@ -577,8 +592,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Who_Play++;
 		score[0].val_score=MyScore; score[1].val_score= YourScore;
 		TableCards( display, window, pixmap, gc, BACK );
-		DrawScore( display, window, pixmap, gc, blue,
-			 white, white, 10 , horiz, vert, score );
+		DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
+			      green_shadow, font_height, horiz, vert, score);
 		break;	 
     }	
     if(status==True)
@@ -591,9 +606,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 				     event.xexpose.width,
 				     event.xexpose.height );
 					 
-    		   DrawScore( display, window, pixmap, gc, blue,
-			 			  white, white, 10 , horiz, vert, score 
-						); 
+    		   DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
+						green_shadow, font_height, horiz, vert, score); 
 		   if(State==WAITING)
 			strcpy(Messa, 
 			   "This is the first version of the Xtruco...");
@@ -939,37 +953,59 @@ void ShowText( Display *display, Window window, GC gc, char text[], int pos1, in
 }
 
 
-int DrawScore( Display *display, Window window, Pixmap pixmap, GC gc, 
-		        unsigned long c1, unsigned long c2, unsigned long c3, /* colors */
-				int f, int h, int v,    	                          /* width_fonte, horiz, vert */ 
-				TYPE_SCORE *draw_score                                /* Struct for Score (val_scores) */ )
-{
-	int	p1, p2, l, a, m, n, SC_HEIGHT;
-	char	Scores[10];
+int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc, 
+              unsigned long c_back, unsigned long c_highlight, unsigned long c_shadow,
+              int f, int horiz, int vert,
+              TYPE_SCORE *draw_score) {
 
-	SC_HEIGHT=8*f;
-	m= p1= horiz- SC_WIDTH;
-	n= p2= 0;
-	l= SC_WIDTH-1;
-	a= SC_HEIGHT-1;
-	Scores[9]='\0';
-    	XSetForeground( display, gc, c1 );
-    	XSetBackground( display, gc, c1 );
-	XFillRectangle( display, window, gc, p1, p2, l, a );
-	XSetForeground( display, gc, c3 );
-	XDrawRectangle( display, window, gc, p1, p2, l, a );
-	XDrawLine(display, window, gc, p1+l/2, p2, p1+l/2, p2+a );
-	p2 += 3*f;
-	a -= (3*f);
-	XDrawLine(display, window, gc, p1, p2, p1+l, p2 );
-	XSetForeground( display, gc, c2 );
-	ShowText( display, window, gc, "Machine", p1+5, n+2*f );
-	ShowText( display, window, gc, "You", p1+5+l/2, n+2*f );
-	sprintf(Scores," %2d", score[0].val_score );
-	ShowText( display, window, gc, Scores, p1+5, p2+3*f );
-	sprintf(Scores," %2d", score[1].val_score );
-	ShowText( display, window, gc, Scores, p1+5+l/2, p2+3*f );
-}	
+    int SC_HEIGHT = 8 * f;
+
+    int x = horiz - SC_WIDTH;
+    int y = 0;
+    int width = SC_WIDTH - 1;
+    int height = SC_HEIGHT - 1;
+
+    char Scores[10];
+    Scores[9] = '\0';
+
+    // Fundo
+    XSetForeground(display, gc, c_back);
+    XFillRectangle(display, window, gc, x, y, width, height);
+
+    // Bordas para efeito 3D
+    // Borda clara (topo e esquerda)
+    XSetForeground(display, gc, c_highlight);
+    XDrawLine(display, window, gc, x, y, x + width, y);       // Topo
+    XDrawLine(display, window, gc, x, y, x, y + height);      // Esquerda
+
+    // Borda escura (base e direita)
+    XSetForeground(display, gc, c_shadow);
+    XDrawLine(display, window, gc, x, y + height, x + width, y + height);    // Base
+    XDrawLine(display, window, gc, x + width, y, x + width, y + height);     // Direita
+
+    // Linha vertical no meio (divisor "machine" vs "you")
+    XSetForeground(display, gc, c_shadow);
+    XDrawLine(display, window, gc, x + width / 2, y, x + width / 2, y + height);
+
+    // Linha horizontal para separar cabeçalhos do placar
+    int header_height = 3 * f;
+    XDrawLine(display, window, gc, x, y + header_height, x + width, y + header_height);
+
+    // Textos dos títulos (usando cor clara para destacar)
+    XSetForeground(display, gc, WhitePixel(display, 0)); // texto branco
+    ShowText(display, window, gc, "Machine", x + 5, y + 2 * f);
+    ShowText(display, window, gc, "You", x + 5 + width / 2, y + 2 * f);
+
+    // Scores
+    sprintf(Scores, " %2d", draw_score[0].val_score);
+    ShowText(display, window, gc, Scores, x + 5, y + header_height + 3 * f);
+
+    sprintf(Scores, " %2d", draw_score[1].val_score);
+    ShowText(display, window, gc, Scores, x + 5 + width / 2, y + header_height + 3 * f);
+
+    return 0;
+}
+	
 
 int TalkMachine(Display *display, Window window, GC gc, char *text, int	type)
 {

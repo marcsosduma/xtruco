@@ -306,7 +306,6 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     if((status= CheckEvent( display, True, *width, *height,
 			&event, &keysym ))==True)
     {
-	printf("Evento %d recebido\n", event.type);
 	Last_State= State;
     	if( ButtonEvent( display, &event ) == True )
 	{

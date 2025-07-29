@@ -204,8 +204,6 @@ void play_sound() {
     if (access(sound, F_OK) == 0) {
         int rc = system("paplay /usr/share/sounds/freedesktop/stereo/bell.oga 2>/dev/null &");
         (void)rc;
-    } else {
-        fprintf(stderr, "Som padrão não encontrado: %s\n", sound);
     }
 }
 
@@ -322,9 +320,11 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     {
 	case 0:
     	First_Openning(display, window, pixmap, gc, 0 );
+		TrucoButton(1);
 		State=WAITING;
 		break;
 	case NEW:
+		TrucoButton(1);
 		sprintf(Messa, "Starting a new game...");
 		TalkMachine( display, window, gc, Messa, 0 );
 		if(Last_State==2) 
@@ -334,6 +334,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     		DrawScore(display, window, pixmap, gc, green_back, 
 			green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
+		TrucoButton(1);
 		TalkMachine( display, window, gc, Messa, 1 );
 		for(what=0;what<9;what++) Table[what].card_state=0;
 		TableCards( display, window, pixmap, gc, BACK );
@@ -435,6 +436,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			if(ValGame==1) Sum_Val=2; else Sum_Val=3;
 			sprintf(Messa, "Truco (%2d). Do you accept?...", 
 					Sum_Val+ValGame );
+			TrucoButton(ValGame+Sum_Val);			
 			TalkMachine( display, window, gc, Messa, 0 );
 		}
 		if(Sum_Val==0)
@@ -512,7 +514,9 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			  Who_Say_Truco=1;
 			  sprintf(Messa, "I Want %2d. Do you accept?...", 
 					ValGame+Sum_Val );
+			  TrucoButton(ValGame+Sum_Val);
 			  State=5;
+			  Message=0;
 			}
 			else
 			  sprintf(Messa, "I accept. Let's go !!!");
@@ -903,6 +907,11 @@ int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int 
 		else Table[b].card_state=0;
 		b++;
 	}
+	/*
+	Table[0].what=21;Table[1].what=22;Table[2].what=23;
+	Table[3].what=24;Table[4].what=25;Table[5].what=20;
+	Table[6].what=1;
+	*/
 	for(a=6; a>=0; a--)
 	{
 		b=(Table[a].what-1)/4+1;
@@ -1294,7 +1303,8 @@ int AcceptTruco(int val1)
 			&& (c3>7) && (c2>6)) {ret=1;danger=1;}
 		break;
 	case 2:
-		if((ValGame+YourScore)>=MAXIMO) return(ret=2);
+		if((ValGame+YourScore)>=MAXIMO) 
+			return(ret=2);
 		if(first==1)
 		{
 			if(c2==14) ret=2;
@@ -1324,10 +1334,15 @@ int AcceptTruco(int val1)
 		}
 		break;
 	case 3:
-		if((ValGame+YourScore)>=MAXIMO) return (ret=2);
+		if((ValGame+YourScore)>=MAXIMO) 
+			return (ret=2);
 		ret=0;
-				if(val1>0)
-		{
+		if(you>=0){
+			if(c1>you) ret=2;
+			else if(c1>=you && first==1) ret=2;
+			else if(you<7 && RANDOM(2)==1) ret=2;
+			else ret=0;					
+		}else if(val1>0){
 			if(c1==14) ret=2;
 			else if(c1>10) ret=1;
 			else if((c1>6) && (first==3)) ret=1;

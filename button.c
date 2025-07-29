@@ -155,3 +155,32 @@ int ButtonEvent(Display *display, XEvent *event) {
 
     return False;
 }
+
+int TrucoButton(int value) {
+    for (int i = 0; i < button_count; i++) {
+        if(strstr(buttons[i].text,"TRUCO")!=NULL || strstr(buttons[i].text,"SIX")!=NULL 
+        || strstr(buttons[i].text,"NINE")!=NULL || strstr(buttons[i].text,"TWELVE")!=NULL){
+            switch(value){
+                case 1:
+                    strcpy(buttons[i].text,"TRUCO ");
+                    buttons[i].length=5;
+                    break;
+                case 3:
+                    strcpy(buttons[i].text," SIX  " );
+                    buttons[i].length=5;
+                    break;
+                case 6:
+                    strcpy(buttons[i].text," NINE ");
+                    buttons[i].length=5;
+                    break;
+                case 9:
+                case 12:
+                    strcpy(buttons[i].text,"TWELVE");
+                    buttons[i].length=6;
+                    break;
+            }
+            RedrawButton(buttons[i].display, i, False);
+        }
+    }
+    return -1;
+}

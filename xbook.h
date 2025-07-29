@@ -106,3 +106,5 @@ int MapWindow( Display *display, Window window);
 int NameWindow( Display *display, Window window, char *name, char *class_name, char *class_type);
 
 int SetWMHints( Display *display, Window window, Pixmap icon);
+
+int TrucoButton(int value);

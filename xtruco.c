@@ -77,6 +77,7 @@ int			pc, you, Who_Play, You_Play, first, MyScore, YourScore;
 int			alert, Sum_Val, ValGame, danger, Begining;
 int			Play, Beginer, Who_Say_Truco,score1, score2;
 int			SHOW=1;
+int         pos_arrow=0;
 
 XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0},{640,0},{720,0},{800,0},{880,0},
 		 		  {0,125}, {80,125}, {160,125}, {240,125},{320,125},{400,125},{480,125},{560,125},{640,125},{720,125},{800,125},{880,125}, 
@@ -90,7 +91,7 @@ void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, u
 int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int y, int width, int height);
 int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card);
 int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card);
-int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos);
+int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos);
 int TalkMachine(Display *display, Window window, GC gc, char *text, int	type);
 int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height);
 int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc, 
@@ -228,6 +229,55 @@ int Draw_Cards(Display *display, Window rootwindow,
     return 0;
 }
 
+int Clear_Arrow(Display *display, Window rootwindow,
+               Pixmap pixmap, GC pixgc, int posx, int posy)
+{
+    int src_x = 1550;
+    int src_y = 235;
+
+	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, pixgc, bmdcards,
+              src_x, src_y, 0, 0,
+              12, 15);
+    XCopyArea(display, cardsPixmap, pixmap, pixgc,
+              0, 0,                          // origem da carta dentro do BMP
+              12, 15,     // tamanho da carta
+              posx, posy);                   // destino dentro do Pixmap
+    XFreePixmap(display, cardsPixmap);
+    return 0;
+}
+
+
+int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arrow, int clear)
+{ 
+	int what;
+  	int a=0; 
+	int pos1, pos2; 
+ 	
+	pos1 = horiz/2 -36- 20*10 + (10*pos_arrow); 
+	pos2 = vert/2 - 48 - 17; 
+
+	int src_x = (clear)?1550:1500;
+    int src_y = 235;
+
+	Pixmap cardsPixmap = XCreatePixmap(display, window,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, gc, bmdcards,
+              src_x, src_y, 0, 0,
+              12, 15);
+    XCopyArea(display, cardsPixmap, pixmap, gc,
+              0, 0,
+              12, 15,
+              pos1, pos2);                   // destino dentro do Pixmap
+
+	Refresh( display, window, gc, pixmap, pos1, pos2,
+			12, 15 );
+
+	XFreePixmap(display, cardsPixmap);
+} 
 
 int First_Openning(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int type)
 {
@@ -328,7 +378,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		sprintf(Messa, "Starting a new game...");
 		TalkMachine( display, window, gc, Messa, 0 );
 		if(Last_State==2) 
-			Cuting(display, window, pixmap, gc, BACK, 480 );
+			Cutting(display, window, pixmap, gc, BACK, 480 );
     		First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
     		DrawScore(display, window, pixmap, gc, green_back, 
@@ -342,14 +392,17 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		TalkMachine( display, window, gc, Messa, 0 ); 
 		ShowCards(display, window, pixmap, gc, BACK );
 		Message=Last_State=0;
+		pos_arrow= 0;
+		Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
 		State=2;
 		break;
 	case 2:
-		if((Message==4) || (Message==40))
+		if((Message==4) || (Message==40) || (Message==2020))
 		{
-			TalkMachine( display, window, gc, Messa, 1 ); 
-			what=event.xbutton.x;
-			Cuting(display, window, pixmap, gc, BACK, what );
+			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
+			TalkMachine( display, window, gc, Messa, 1 );
+			what=(Message==2020)?horiz/2 -36- 20*10 + (pos_arrow*10):event.xbutton.x;
+			Cutting(display, window, pixmap, gc, BACK, what );
 			TableCards( display, window, pixmap, gc, BACK );
 			strcpy(Messa, "Let's go...");
 			if(Beginer==1) State=3; else State=4;
@@ -361,6 +414,16 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 				strcpy(Messa, "Will You go play?...");
 			}
 			TalkMachine( display, window, gc, Messa, 0 ); 
+			Message=0;
+		}else if(Message==2000){
+			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
+			if(pos_arrow>0) pos_arrow--;
+			Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
+			Message=0;
+		}else if(Message==2010){
+			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
+			if(pos_arrow<39) pos_arrow++;
+			Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
 			Message=0;
 		}
 		break;
@@ -403,8 +466,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			pc=you+1;
 			score1=0; score2=2;
 			State=13;
-		}
-			
+		}			
 		Message=0;
 		break;
 	case 4:
@@ -611,25 +673,29 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 					 
     		   DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
 						green_shadow, font_height, horiz, vert, score); 
-		   if(State==WAITING)
-			strcpy(Messa, 
-			   "This is the first version of the Xtruco...");
-		   TalkMachine( display, window, gc, Messa, 0 ); 
-                   XFlush( display );
-                   break;
+		    if(State==WAITING)
+				strcpy(Messa, "This is the first version of the Xtruco...");
+		    TalkMachine( display, window, gc, Messa, 0 ); 
+        	XFlush( display );
+            break;
         case KeyPress:
-                   if( ( keysym == XK_Q ) || ( keysym == XK_q ) )
-                   {
-                           return( False );
-                   }
-                   else if( ( keysym == XK_A ) || ( keysym == XK_a ) )
-                   {
-			if((++SHOW)>2) SHOW=1;
-                   }
+            if( ( keysym == XK_Q ) || ( keysym == XK_q ) )
+            {
+            	return( False );
+            }else if( ( keysym == XK_A ) || ( keysym == XK_a ) ){
+				if((++SHOW)>2) SHOW=1;
+            }else if(keysym == XK_Left){
+				Message = 2000;
+			}else if(keysym == XK_Right){
+				Message = 2010;
+			}else if(keysym == XK_Return){
+				Message = 2020;
+			}
+			break;
         case ConfigureNotify:
-                   *width  = event.xconfigure.width;
-                   *height = event.xconfigure.height;
-                   break;
+            *width  = event.xconfigure.width;
+            *height = event.xconfigure.height;
+            break;
     }
     return( True );
 }
@@ -818,7 +884,7 @@ int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card)
  	} 
 } 
 
-int Cuting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos)
+int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos)
 { 
 	int a=0, b, corta, corta2; 
 	int pos1, pos2, x; 

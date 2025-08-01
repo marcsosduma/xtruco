@@ -812,7 +812,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     		   DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
 						green_shadow, font_height, horiz, vert, score); 
 		    if(State==WAITING)
-				strcpy(Messa, "This is the first version of the Xtruco...");
+				strcpy(Messa, "This is the Xlib version of the Truco game...");
 		    TalkMachine( display, window, gc, Messa, 0 ); 
         	XFlush( display );
             break;

@@ -331,18 +331,18 @@ int ClearCard(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int 
 }
 
 int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
+	int min=(State==5)? 3: 0;
 	if(i_arrow<0){
-		while(True){
-			i_arrow=(i_arrow>6)?0:i_arrow+1;
-			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
-			break;
+		i_arrow= min;
+		while(i_arrow<3 && Table[i_arrow+3].card_state<1){
+			i_arrow=(i_arrow>6)?min:i_arrow+1;
 		}
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, (i_arrow>2));
 	}
 	if(Message==2000){
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 		while(True){
-			i_arrow=(i_arrow>0)?i_arrow-1:7;
+			i_arrow=(i_arrow>min)?i_arrow-1:7;
 			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
 			break;
 		}
@@ -351,7 +351,7 @@ int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
 	}else if(Message==2010){
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 		while(True){
-			i_arrow=(i_arrow>6)?0:i_arrow+1;
+			i_arrow=(i_arrow>6)?min:i_arrow+1;
 			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
 			break;
 		}

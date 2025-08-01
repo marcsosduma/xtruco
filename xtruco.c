@@ -23,11 +23,9 @@
 #define	      NEW	       99
 #define	      WAITING	   91
 #define	      ERR_TRUCO	   666
-
-#define CARDS_WIDTH  80
-#define CARDS_HEIGHT 123
-
-#define WAIT_VIEW 15000
+#define 	  CARDS_WIDTH  80
+#define  	  CARDS_HEIGHT 123
+#define 	  WAIT_VIEW    15000
 
 typedef struct
     {
@@ -77,16 +75,21 @@ int			pc, you, Who_Play, You_Play, first, MyScore, YourScore;
 int			alert, Sum_Val, ValGame, danger, Begining;
 int			Play, Beginer, Who_Say_Truco,score1, score2;
 int			SHOW=1;
-int         pos_arrow=0;
+int         pos_arrow_x=0, pos_arrow_y=0, i_arrow=0;
+int St = -1000;
 
 XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0},{640,0},{720,0},{800,0},{880,0},
 		 		  {0,125}, {80,125}, {160,125}, {240,125},{320,125},{400,125},{480,125},{560,125},{640,125},{720,125},{800,125},{880,125}, 
 		 		  {0,248}, {80,248}, {160,248}, {240,248},{320,248},{400,248},{480,248},{560,248},{640,248},{720,248},{800,248},{880,248}, 
 		 		  {0,372}, {80,372}, {160,372}, {240,372},{320,372},{400,372}}; 
+XPoint parrow[] = {{0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}};
+
 XImage* bmdcards = NULL;
 int q=2;
 
 // 
+int Button_New(Display	*display, Window window);
+int QuitApplication( Display *display, Window	window);
 void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id);
 int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int y, int width, int height);
 int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card);
@@ -98,6 +101,14 @@ int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc,
               unsigned long c_back, unsigned long c_highlight, unsigned long c_shadow,
               int f, int horiz, int vert,
               TYPE_SCORE *draw_score);
+int card1(Display *display, Window	window, int type);
+int card2(Display *display, Window	window, int type);
+int card3(Display *display, Window	window, int type);
+int Button_Truco(Display *display, Window	window);
+int Button_Yes(Display *display, Window	window);
+int Button_No(Display *display, Window	window);
+int Button_New(Display *display, Window	window);
+int QuitApplication(Display *display, Window	window);
 int FirstGame();
 int SecondGame();
 int ThirdGame();
@@ -163,6 +174,8 @@ char *argv[];
 		Table[position].X= Table[position+3].X= fator*(position+1);
 		Table[position].Y= 25;
 		Table[position+3].Y= vert - 160;
+		parrow[position].x = fator*(position+1);
+		parrow[position].y = vert - 175;
     }
     Table[6].X= fator*5;
     Table[6].Y= (Table[0].Y+Table[3].Y)/2;
@@ -229,37 +242,13 @@ int Draw_Cards(Display *display, Window rootwindow,
     return 0;
 }
 
-int Clear_Arrow(Display *display, Window rootwindow,
-               Pixmap pixmap, GC pixgc, int posx, int posy)
-{
-    int src_x = 1550;
-    int src_y = 235;
-
-	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
-                                       CARDS_WIDTH, CARDS_HEIGHT,
-                                       DefaultDepth(display, DefaultScreen(display)));
-    XPutImage(display, cardsPixmap, pixgc, bmdcards,
-              src_x, src_y, 0, 0,
-              12, 15);
-    XCopyArea(display, cardsPixmap, pixmap, pixgc,
-              0, 0,                          // origem da carta dentro do BMP
-              12, 15,     // tamanho da carta
-              posx, posy);                   // destino dentro do Pixmap
-    XFreePixmap(display, cardsPixmap);
-    return 0;
-}
-
-
-int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arrow, int clear)
+int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arrow_x, int pos_arrow_y, int clear, int type)
 { 
 	int what;
   	int a=0; 
-	int pos1, pos2; 
+	int pos1; 
  	
-	pos1 = horiz/2 -36- 20*10 + (10*pos_arrow); 
-	pos2 = vert/2 - 48 - 17; 
-
-	int src_x = (clear)?1550:1500;
+	int src_x = (clear)?1550:((type==0)?1500:1517);
     int src_y = 235;
 
 	Pixmap cardsPixmap = XCreatePixmap(display, window,
@@ -271,9 +260,9 @@ int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arr
     XCopyArea(display, cardsPixmap, pixmap, gc,
               0, 0,
               12, 15,
-              pos1, pos2);                   // destino dentro do Pixmap
+              pos_arrow_x, pos_arrow_y);                   // destino dentro do Pixmap
 
-	Refresh( display, window, gc, pixmap, pos1, pos2,
+	Refresh( display, window, gc, pixmap, pos_arrow_x, pos_arrow_y,
 			12, 15 );
 
 	XFreePixmap(display, cardsPixmap);
@@ -341,6 +330,66 @@ int ClearCard(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int 
     return 0;
 }
 
+int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
+	if(i_arrow<0){
+		while(True){
+			i_arrow=(i_arrow>6)?0:i_arrow+1;
+			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
+			break;
+		}
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, (i_arrow>2));
+	}
+	if(Message==2000){
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
+		while(True){
+			i_arrow=(i_arrow>0)?i_arrow-1:7;
+			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
+			break;
+		}
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, (i_arrow>2));
+		Message=0;
+	}else if(Message==2010){
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
+		while(True){
+			i_arrow=(i_arrow>6)?0:i_arrow+1;
+			if(i_arrow<3 && Table[i_arrow+3].card_state<1) continue;
+			break;
+		}
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, (i_arrow>2));
+		Message=0;
+	}else if(Message==2020){
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
+		Message=0;
+		switch (i_arrow)
+		{
+			case 0:
+				card1(display, window, 1);
+				break;
+			case 1:
+				card2(display, window, 1);
+				break;
+			case 2:
+				card3(display, window, 1);
+				break;
+			case 3:
+				Button_Truco(display, window);
+				break;
+			case 4:
+				Button_Yes(display, window);
+				break;
+			case 5:
+				Button_No(display, window);
+				break;
+			case 6:
+				Button_New(display, window);
+				break;
+			case 7:
+				QuitApplication( display, window);
+				break;
+			}
+		}
+}
+
 int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height)
 {
     XEvent      event;
@@ -351,38 +400,62 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     struct timeval timer1, timer2;
     struct timezone zone;
 
-    if((status= CheckEvent( display, True, *width, *height,
-			&event, &keysym ))==True)
-    {
-	Last_State= State;
-    	if( ButtonEvent( display, &event ) == True )
-	{
-		if( State==200)
-			return( False );
+	/*
+	if(St != State){
+		printf("State=%d\n", State);
+		St = State;
 	}
-    	else if( InvEvent( display, &event ) == True )
-	{
-		if( State==200)
-			return( False );
-	}
+	*/		
+    if((status= CheckEvent( display, True, *width, *height, &event, &keysym ))==True){
+		Last_State= State;
+		if( ButtonEvent( display, &event ) == True ){
+			if( State==200)
+				return( False );
+		}else if( InvEvent( display, &event ) == True ){
+			if( State==200)
+				return( False );
+		}
     }	
     switch(State)
     {
 	case 0:
     	First_Openning(display, window, pixmap, gc, 0 );
 		TrucoButton(1);
+		i_arrow= 6;
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, 1);
 		State=WAITING;
 		break;
+	case WAITING:
+		if(Message==2000){
+			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
+			i_arrow=(i_arrow<7)?i_arrow+1:6;
+			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, 1);
+			Message=0;
+		}else if(Message==2010){
+			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
+			i_arrow=(i_arrow>6)?6:i_arrow+1;
+			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, 1);
+			Message=0;
+		}else if(Message==2020){
+			if (i_arrow==7){
+				QuitApplication( display, window);
+				return False;
+			}else{
+				Button_New(display, window);
+			}
+		}
+		break;
 	case NEW:
+		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
 		TrucoButton(1);
 		sprintf(Messa, "Starting a new game...");
 		TalkMachine( display, window, gc, Messa, 0 );
 		if(Last_State==2) 
 			Cutting(display, window, pixmap, gc, BACK, 480 );
-    		First_Openning(display, window, pixmap, gc, 1 );
+    	First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
-    		DrawScore(display, window, pixmap, gc, green_back, 
-			green_highlight, green_shadow, font_height, horiz, vert, score);
+    	DrawScore(display, window, pixmap, gc, green_back, 
+		green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
 		TrucoButton(1);
 		TalkMachine( display, window, gc, Messa, 1 );
@@ -392,44 +465,67 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		TalkMachine( display, window, gc, Messa, 0 ); 
 		ShowCards(display, window, pixmap, gc, BACK );
 		Message=Last_State=0;
-		pos_arrow= 0;
-		Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
+		pos_arrow_x= 20;
+		pos_arrow_y= vert/2 - 48 - 17; 
+		Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, False, 0);
 		State=2;
 		break;
 	case 2:
 		if((Message==4) || (Message==40) || (Message==2020))
 		{
-			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
+			// ButtonCut
+			ValGame=1;
+			You_Play=100;
+			Who_Say_Truco=Sum_Val=danger=0;
+			pc=you=-1;
+			if((++Begining)>2) Begining=1;
+			Beginer=Begining;
+			score1=score2=first=0;
+			//
+
+			pos_arrow_y= vert/2 - 48 - 17; 
+			Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, True, 0);
 			TalkMachine( display, window, gc, Messa, 1 );
-			what=(Message==2020)?horiz/2 -36- 20*10 + (pos_arrow*10):event.xbutton.x;
+			what=(Message==2020)?horiz/2 -36- 20*10 + (pos_arrow_x*10):event.xbutton.x;
 			Cutting(display, window, pixmap, gc, BACK, what );
 			TableCards( display, window, pixmap, gc, BACK );
 			strcpy(Messa, "Let's go...");
-			if(Beginer==1) State=3; else State=4;
+			i_arrow=-1; // arrow start
+			if(Beginer==1){
+				State=3;
+				i_arrow = -1;
+			} else{
+				State=4;
+			}
 			if((MyScore==MAXIMO-1) && (YourScore<11))
 				State=6;
 			else if((YourScore==MAXIMO-1) && (MyScore<11))
 			{ 
-				Sum_Val=2; State=5;
+				Sum_Val=2; State=5; i_arrow=-1;
 				strcpy(Messa, "Will You go play?...");
 			}
 			TalkMachine( display, window, gc, Messa, 0 ); 
 			Message=0;
 		}else if(Message==2000){
-			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
-			if(pos_arrow>0) pos_arrow--;
-			Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
+			pos_arrow_y= vert/2 - 48 - 17; 
+			Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, True, 0);
+			if(pos_arrow_x>0) pos_arrow_x--;
+			Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, False, 0);
 			Message=0;
 		}else if(Message==2010){
-			Draw_Arrow(display, window, pixmap, gc, pos_arrow, True);
-			if(pos_arrow<39) pos_arrow++;
-			Draw_Arrow(display, window, pixmap, gc, pos_arrow, False);
+			pos_arrow_y= vert/2 - 48 - 17; 
+			Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, True, 0);
+			if(pos_arrow_x<39) pos_arrow_x++;
+			Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, False, 0);
 			Message=0;
 		}
 		break;
 	case 3:
+		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			State=6;
 			Who_Say_Truco=2;
 			ValGame+= Sum_Val;
@@ -438,6 +534,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		else if((Message==1) || (Message==2) || (Message==3)
 			|| (Message==10) || (Message==20) || (Message==30))
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			ValGame+= Sum_Val;
 			Sum_Val=0;
 			if(Message<10)
@@ -456,11 +554,18 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			}
 			TableCards( display, window, pixmap, gc, BACK );
 			if((++Beginer)>2) Beginer=1;
-			if(Beginer==1) State=3 ; else State=4;
+			if(Beginer==1) {
+				State=3;
+				i_arrow = -1;
+			} else{
+				State=4;
+			}
 			if((++Play)>2){ Play=1; State=13; }
 		}
 		else if(Message==ERR_TRUCO)
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			ValGame += Sum_Val;
 			Sum_Val = 0;
 			pc=you+1;
@@ -521,14 +626,25 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		   }
 		   TableCards( display, window, pixmap, gc, BACK );
 		   if((++Beginer)>2) Beginer=1;
-		   if(Beginer==1) State=3; else State=4;
+		   if(Beginer==1) {
+				State=3; 
+				i_arrow=-1;
+		   }else{
+				 State=4;
+		   }
 		   if((++Play)>2) { Play=1; State=13; }
 		}
-		else State=5;
+		else{
+			State=5;
+			i_arrow=-1;
+		}
 		break;
 	case 5:
+		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			State=6;
 			Who_Say_Truco=2;
 			TalkMachine( display, window, gc, Messa, 1 ); 
@@ -537,12 +653,21 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		else if(Message==YES)
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			Message=0;
 			TalkMachine( display, window, gc, Messa, 1 ); 
-			if(Beginer==1) State=3; else State=4;
+			if(Beginer==1) {
+				State=3;
+				i_arrow = -1;
+			} else{
+				State=4;
+			}
 		}
 		else if(Message==NO)
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			strcpy(Messa, "You're running away again...");
 			TalkMachine( display, window, gc, Messa, 0 ); 
 			Message=0;
@@ -554,6 +679,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		else if(Message==ERR_TRUCO)
 		{
+			if(i_arrow>=0 && i_arrow<8)
+				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			ValGame += Sum_Val;
 			Sum_Val = 0;
 			pc=you+1;
@@ -563,7 +690,12 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		break;
 	case 6:
-		if(Beginer==1) State=3; else State=4;
+		if(Beginer==1) {
+			State=3;
+			i_arrow = -1;
+		} else{
+			State=4;
+		}
 		resulters=AcceptTruco(pc);
 		if(ValGame==1) info.number_of_trucos++;
 		if(resulters>=1)
@@ -578,6 +710,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 					ValGame+Sum_Val );
 			  TrucoButton(ValGame+Sum_Val);
 			  State=5;
+			  i_arrow=-1;
 			  Message=0;
 			}
 			else
@@ -625,7 +758,12 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		while(1) { 
 			gettimeofday(&timer2, &zone );
 			if(timer2.tv_sec>(timer1.tv_sec+1L)) break; }
-		if(Beginer==1) State=3; else State=4;
+		if(Beginer==1){
+			State=3;
+			i_arrow = -1;
+		 }else{
+			State=4;
+		 }
 		Table[7].card_state=0; Table[8].card_state=0;
 		if((score1>1) || (score2>1))
 		{
@@ -731,13 +869,14 @@ void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, u
 	int	QuitApplication();
 	int	Button_Truco();
 	int	Button_No();
-	int     Button_Yes();
+	int Button_Yes();
 	int	Button_New();
 	int	card1();
 	int	card2();
 	int	card3();
 	int	Button_Cut();
 	int	x, y, pos1, pos2;
+	int n_arrow=7;
 
 	pos1 = horiz/2 -36- 20*10; 
 	pos2 = vert/2 - 48;
@@ -747,18 +886,28 @@ void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, u
 	y = vert-BUTTON_HEIGHT-5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "QUIT",QuitApplication );
+	parrow[n_arrow].x = x - 20;
+	parrow[n_arrow--].y = y + BUTTON_HEIGHT/2 - 7; 
 	y -= BUTTON_HEIGHT + 5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "NEW",Button_New );
+	parrow[n_arrow].x = x - 20;
+	parrow[n_arrow--].y = y + BUTTON_HEIGHT/2 - 7; 
 	y -= BUTTON_HEIGHT + 5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "NO", Button_No );
+	parrow[n_arrow].x = x - 20;
+	parrow[n_arrow--].y = y + BUTTON_HEIGHT/2 - 7; 
 	y -= BUTTON_HEIGHT + 5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "YES", Button_Yes );
+	parrow[n_arrow].x = x - 20;
+	parrow[n_arrow--].y = y + BUTTON_HEIGHT/2 - 7; 
 	y -= BUTTON_HEIGHT + 5;
 	CreateButton( display, window, x, y, fore, back,
 		font_id, "TRUCO", Button_Truco );
+	parrow[n_arrow].x = x - 20;
+	parrow[n_arrow--].y = y + BUTTON_HEIGHT/2 - 7; 
 	InvButton( display, window, Table[3].X, Table[3].Y, CARDS_WIDTH, 
 		CARDS_HEIGHT, card1 );
 	InvButton( display, window, Table[4].X, Table[4].Y, CARDS_WIDTH, 
@@ -829,13 +978,6 @@ int card3(Display *display, Window	window, int type)
 int Button_Cut(Display *display, Window	window, int type)
 {
 	Message=4*type;
-	ValGame=1;
-	You_Play=100;
-	Who_Say_Truco=Sum_Val=danger=0;
-	pc=you=-1;
-	if((++Begining)>2) Begining=1;
-	Beginer=Begining;
-	score1=score2=first=0;
 }
 
 void Shuffle() 
@@ -911,8 +1053,8 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 pos, pos2, x );
 			Refresh( display, window, gc, pixmap, pos, pos2, 
 				x, CARDS_HEIGHT );
-		XFlush(display);
-		usleep(WAIT_VIEW); 
+			XFlush(display);
+			usleep(WAIT_VIEW); 
 		}
 		pos1-=b;
 		for(a=pos-10; a>=pos1; a-=10) 
@@ -923,8 +1065,8 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 a+CARDS_WIDTH, pos2, 10 );
 			Refresh( display, window, gc, pixmap, a, pos2, 
 				CARDS_WIDTH+10, CARDS_HEIGHT );
-		XFlush(display);
-		usleep(WAIT_VIEW); 
+			XFlush(display);
+			usleep(WAIT_VIEW); 
  		}
 		pos=a;
 	}

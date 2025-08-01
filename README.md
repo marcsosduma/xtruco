@@ -21,7 +21,8 @@ To compile and run the project, you need:
 Use the following command to compile:
 
 ```bash
-gcc -fdiagnostics-color=always -g xtruco.c -o xtruco -lX11 -lm
+cd xtruco
+make
 ```
 
 ![Screenshot](xtruco.png)

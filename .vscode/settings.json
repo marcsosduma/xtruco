@@ -3,6 +3,9 @@
         "*html": "html",
         "*.html": "html",
         "*.xbm": "c",
-        "xbook.h": "c"
+        "xbook.h": "c",
+        "type_traits": "c",
+        "cards.h": "c",
+        "ipc.h": "c"
     }
 }

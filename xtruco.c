@@ -77,6 +77,7 @@ int			Play, Beginer, Who_Say_Truco,score1, score2;
 int			SHOW=1;
 int         pos_arrow_x=0, pos_arrow_y=0, i_arrow=0;
 int St = -1000;
+int			has_talk=0;
 
 XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0},{640,0},{720,0},{800,0},{880,0},
 		 		  {0,125}, {80,125}, {160,125}, {240,125},{320,125},{400,125},{480,125},{560,125},{640,125},{720,125},{800,125},{880,125}, 
@@ -268,6 +269,36 @@ int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arr
 	XFreePixmap(display, cardsPixmap);
 } 
 
+int Draw_Talk(Display *display,Window window, Pixmap pixmap, GC gc, int pos_x, int pos_y, int type)
+{ 
+	XPoint p[]={{1013,600}, {1097,600}, {1182,600}, {1268,600}, {1353,600},{1438,600},{1523,600}, {970,7} };
+ 	
+	Pixmap cardsPixmap = XCreatePixmap(display, window,
+                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, gc, bmdcards,
+              p[type].x, p[type].y, 0, 0,
+              80, 100);
+    XCopyArea(display, cardsPixmap, pixmap, gc,
+              0, 0,
+              80, 100,
+              pos_x, pos_y);                   // destino dentro do Pixmap
+
+	Refresh( display, window, gc, pixmap, pos_x, pos_y,
+			  80, 100 );
+
+	XFreePixmap(display, cardsPixmap);
+
+	has_talk=1;
+} 
+
+void Clear_Talk(Display *display, Window window, Pixmap pixmap, GC gc) {
+	if(!has_talk) return;
+	Draw_Talk(display, window, pixmap, gc, 450 , 380, 7);
+	has_talk=0;
+}
+
+
 int First_Openning(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int type)
 {
     Pixmap	bitmap1;
@@ -405,8 +436,9 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		printf("State=%d\n", State);
 		St = State;
 	}
-	*/		
-    if((status= CheckEvent( display, True, *width, *height, &event, &keysym ))==True){
+	*/
+
+	if((status= CheckEvent( display, True, *width, *height, &event, &keysym ))==True){
 		Last_State= State;
 		if( ButtonEvent( display, &event ) == True ){
 			if( State==200)
@@ -421,6 +453,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 	case 0:
     	First_Openning(display, window, pixmap, gc, 0 );
 		TrucoButton(1);
+		Clear_Talk(display, window, pixmap, gc);
 		i_arrow= 6;
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, 1);
 		State=WAITING;
@@ -448,6 +481,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 	case NEW:
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
 		TrucoButton(1);
+		Clear_Talk(display, window, pixmap, gc);
 		sprintf(Messa, "Starting a new game...");
 		TalkMachine( display, window, gc, Messa, 0 );
 		if(Last_State==2) 
@@ -458,6 +492,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
 		TrucoButton(1);
+		Clear_Talk(display, window, pixmap, gc);
 		TalkMachine( display, window, gc, Messa, 1 );
 		for(what=0;what<9;what++) Table[what].card_state=0;
 		TableCards( display, window, pixmap, gc, BACK );
@@ -503,6 +538,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			{ 
 				Sum_Val=2; State=5; i_arrow=-1;
 				strcpy(Messa, "Will You go play?...");
+				Draw_Talk(display, window, pixmap, gc, 450 , 380, 6);
 			}
 			TalkMachine( display, window, gc, Messa, 0 ); 
 			Message=0;
@@ -524,6 +560,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			State=6;
@@ -534,6 +571,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		else if((Message==1) || (Message==2) || (Message==3)
 			|| (Message==10) || (Message==20) || (Message==30))
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			ValGame+= Sum_Val;
@@ -564,6 +602,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		else if(Message==ERR_TRUCO)
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			ValGame += Sum_Val;
@@ -603,6 +642,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			if(ValGame==1) Sum_Val=2; else Sum_Val=3;
 			sprintf(Messa, "Truco (%2d). Do you accept?...", 
 					Sum_Val+ValGame );
+			Draw_Talk(display, window, pixmap, gc, 450 , 380, (ValGame+Sum_Val)/3-1);
 			TrucoButton(ValGame+Sum_Val);			
 			TalkMachine( display, window, gc, Messa, 0 );
 		}
@@ -643,6 +683,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			State=6;
@@ -653,6 +694,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		else if(Message==YES)
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			Message=0;
@@ -666,6 +708,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		}
 		else if(Message==NO)
 		{
+			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
 			strcpy(Messa, "You're running away again...");
@@ -709,18 +752,22 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			  sprintf(Messa, "I Want %2d. Do you accept?...", 
 					ValGame+Sum_Val );
 			  TrucoButton(ValGame+Sum_Val);
+			  Draw_Talk(display, window, pixmap, gc, 450 , 380, (ValGame+Sum_Val)/3-1);
 			  State=5;
 			  i_arrow=-1;
 			  Message=0;
 			}
-			else
+			else{
 			  sprintf(Messa, "I accept. Let's go !!!");
+			  Draw_Talk(display, window, pixmap, gc, 450 , 380, 5);
+			}
 			TalkMachine( display, window, gc, Messa, 0 );
 		}
 		else
 		{
 			sprintf(Messa, "Sorry!!! I don't accept...");
 			TalkMachine( display, window, gc, Messa, 0 );
+			Draw_Talk(display, window, pixmap, gc, 450 , 380, 4);
 			State=13;score1=10; pc= score2=0; you=1;
 		}
 		break;
@@ -1233,8 +1280,8 @@ int TalkMachine(Display *display, Window window, GC gc, char *text, int	type)
 	a= 400;
 	pos1=10;
 	pos2=vert - b; /* -b/3; */
-    	XSetForeground( display, gc, green );
-    	XSetBackground( display, gc, green );
+    XSetForeground( display, gc, green );
+    XSetBackground( display, gc, green );
 	XFillRectangle( display, window, gc, pos1, pos2, a, b );
 	XSetForeground( display, gc, black );
  	XSetForeground( display, gc, white );
@@ -1245,7 +1292,6 @@ int TalkMachine(Display *display, Window window, GC gc, char *text, int	type)
 	pos2+= (b/2);	
 	XDrawImageString( display, window, gc, pos1, pos2,
 		buffer, tam );
-	XFlush( display );
 }
 
 

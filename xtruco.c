@@ -262,9 +262,8 @@ int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arr
 	int src_x = (clear)?1550:((type==0)?1500:1517);
     int src_y = 235;
 
-	Pixmap cardsPixmap = XCreatePixmap(display, window,
-                                       CARDS_WIDTH, CARDS_HEIGHT,
-                                       DefaultDepth(display, DefaultScreen(display)));
+	Pixmap cardsPixmap = XCreatePixmap(display, window, 12, 15,
+                           DefaultDepth(display, DefaultScreen(display)));
     XPutImage(display, cardsPixmap, gc, bmdcards,
               src_x, src_y, 0, 0,
               12, 15);
@@ -378,7 +377,7 @@ void draw_medal(Display *display, Window window, Pixmap pixmap, GC gc, int n,
     int src_y = (n==0)?250:385;
 
     Pixmap pix =  XCreatePixmap(display, window, 150, 130,
-                                       DefaultDepth(display, DefaultScreen(display)));
+                            DefaultDepth(display, DefaultScreen(display)));
     XPutImage(display, pix, gc, bmdcards,
               src_x, src_y, 0, 0,
               150, 130);
@@ -584,7 +583,6 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Cutting(display, window, pixmap, gc, BACK, 480 );
     	First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
-		//MyScore = 11;
     	DrawScore(display, window, pixmap, gc, green_back, 
 		green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
@@ -1104,7 +1102,7 @@ int QuitApplication( Display *display, Window	window)
 {
 	State=200;
 	fprintf(stderr,"\nSuper Truco (XTruco)\n"\
-		"By Marcos Martins Duma\n\n" );
+				   "By Marcos Martins Duma\n\n" );
 }
 
 int card1(Display *display, Window	window, int type)
@@ -1203,7 +1201,7 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 pos, pos2, x );
 			Refresh( display, window, gc, pixmap, pos, pos2, 
 				x, CARDS_HEIGHT );
-			XFlush(display);
+			//XFlush(display);
 			usleep(WAIT_VIEW); 
 		}
 		pos1-=b;
@@ -1215,7 +1213,7 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 a+CARDS_WIDTH, pos2, 10 );
 			Refresh( display, window, gc, pixmap, a, pos2, 
 				CARDS_WIDTH+10, CARDS_HEIGHT );
-			XFlush(display);
+			//XFlush(display);
 			usleep(WAIT_VIEW); 
  		}
 		pos=a;
@@ -1230,7 +1228,7 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 pos1+a+CARDS_WIDTH, pos2, 10 );
 		Refresh( display, window, gc, pixmap, pos1+a, pos2, 
 				CARDS_WIDTH+10, CARDS_HEIGHT );
-		XFlush(display);
+		//XFlush(display);
 		usleep(WAIT_VIEW); 
 		
 	} 
@@ -1244,14 +1242,14 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 				 a+10, pos2, CARDS_WIDTH );
 		Refresh( display, window, gc, pixmap, a, pos2, 
 				CARDS_WIDTH+20, CARDS_HEIGHT );
-		XFlush(display);
+		//XFlush(display);
 		usleep(WAIT_VIEW); 
 	} 
 	ClearCard( display, window, pixmap, gc,
 			 corta2, pos2, CARDS_WIDTH );
  	Refresh( display, window, gc, pixmap, corta2, pos2, 
 				CARDS_WIDTH, CARDS_HEIGHT );
-	XFlush(display);
+	//XFlush(display);
 	usleep(WAIT_VIEW); 
 	b=0; 
 	for(a=corta; a<40; a++) Cards[(b++)]=c[a]; 

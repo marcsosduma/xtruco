@@ -26,6 +26,7 @@
 #define 	  CARDS_WIDTH  80
 #define  	  CARDS_HEIGHT 123
 #define 	  WAIT_VIEW    15000
+#define       NUM_CARDS    6
 
 typedef struct
     {
@@ -58,6 +59,12 @@ struct {
 			int analisys;
 		 } info={ 0, 0, 0, 0, 0, 8, 1};
 
+typedef struct {
+    int x, y;
+    int dx, dy;
+} Card;
+
+
 BIT_STRUCT    	the_bitmaps[ MAX_PIX ];
 TYPE_SCORE	    score[ 2 ]={{0,0,0},{0,0,0}};	
 
@@ -70,14 +77,15 @@ unsigned long green_back = 0x008000;     // verde médio
 unsigned long green_highlight = 0x90EE90; // verde claro (lightgreen)
 unsigned long green_shadow = 0x006400;   // verde escuro
 int font_height = 12;
-Pixmap			bitmap1;
+Pixmap		bitmap1;
 int			pc, you, Who_Play, You_Play, first, MyScore, YourScore;
 int			alert, Sum_Val, ValGame, danger, Begining;
 int			Play, Beginer, Who_Say_Truco,score1, score2;
 int			SHOW=1;
 int         pos_arrow_x=0, pos_arrow_y=0, i_arrow=0;
-int St = -1000;
+int 		St = -1000;
 int			has_talk=0;
+int         animating=0;
 
 XPoint pcard[] = {{0,0}, {80,0}, {160,0}, {240,0},{320,0},{400,0},{480,0},{560,0},{640,0},{720,0},{800,0},{880,0},
 		 		  {0,125}, {80,125}, {160,125}, {240,125},{320,125},{400,125},{480,125},{560,125},{640,125},{720,125},{800,125},{880,125}, 
@@ -89,6 +97,7 @@ XImage* bmdcards = NULL;
 int q=2;
 
 // 
+void init_random();
 int Button_New(Display	*display, Window window);
 int QuitApplication( Display *display, Window	window);
 void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id);
@@ -152,10 +161,10 @@ char *argv[];
     black     = BlackPixel( display, screen );
     white     = WhitePixel( display, screen );
     colormap  = DefaultColormap( display, screen );  	
-    blue	= GetColor( display, "gray", colormap, white );
-    green	= GetColor( display, "#117e1f", colormap, 2L );
-    red	= GetColor( display, "red", colormap, white );
-    navy	= GetColor( display, "darkblue", colormap, black ); 
+    blue	  = GetColor( display, "gray", colormap, white );
+    green	  = GetColor( display, "#117e1f", colormap, 2L );
+    red		  = GetColor( display, "red", colormap, white );
+    navy	  = GetColor( display, "darkblue", colormap, black ); 
 
 	Visual* visual = DefaultVisual(display, screen);
     bmdcards = loadBitmapFromMemory(display, visual, screen, cards_bmp, cards_bmp_len);
@@ -167,6 +176,7 @@ char *argv[];
         return 1;
     }
 
+	init_random();
     horiz  = width;
     vert = height;
     fator = horiz/6;
@@ -195,7 +205,7 @@ char *argv[];
     window   = TopWindow( display, x, y, width, height,
 			super_bits, super_width, super_height,
 				   &icon, &gc );
-    font 	= LoadFont( display, gc, argc, argv, "variable" );
+    font = LoadFont(display, gc, argc, argv, "");
     font_height	= (font->ascent + font->descent);
     SetNormalHints( display, window, x, y, width, height );
     SetWMHints( display, window, icon );
@@ -274,7 +284,7 @@ int Draw_Talk(Display *display,Window window, Pixmap pixmap, GC gc, int pos_x, i
 	XPoint p[]={{1013,600}, {1097,600}, {1182,600}, {1268,600}, {1353,600},{1438,600},{1523,600}, {970,7} };
  	
 	Pixmap cardsPixmap = XCreatePixmap(display, window,
-                                       CARDS_WIDTH, CARDS_HEIGHT,
+                                       80, 100,
                                        DefaultDepth(display, DefaultScreen(display)));
     XPutImage(display, cardsPixmap, gc, bmdcards,
               p[type].x, p[type].y, 0, 0,
@@ -361,6 +371,91 @@ int ClearCard(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int 
     return 0;
 }
 
+
+void draw_medal(Display *display, Window window, Pixmap pixmap, GC gc, int n,
+                int pos_x, int pos_y) {
+    int src_x = 1230;
+    int src_y = (n==0)?250:385;
+
+    Pixmap pix =  XCreatePixmap(display, window, 150, 130,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, pix, gc, bmdcards,
+              src_x, src_y, 0, 0,
+              150, 130);
+
+	XCopyArea(display, pix, pixmap, gc,
+				0, 0,
+				150, 130,
+				pos_x, pos_y);
+
+    XFreePixmap(display, pix);
+}
+
+void draw_animated_cards(Display *display, Window window, Pixmap pixmap, GC gc,
+                Card cards[], int n,
+                XImage *cardsImage, XPoint *cardPositions) {
+    int src_x = cardPositions[40].x;
+    int src_y = cardPositions[40].y;
+
+    Pixmap cardsPixmap = XCreatePixmap(display, window, CARDS_WIDTH, CARDS_HEIGHT,
+                                       DefaultDepth(display, DefaultScreen(display)));
+    XPutImage(display, cardsPixmap, gc, cardsImage,
+              src_x, src_y, 0, 0,
+              CARDS_WIDTH, CARDS_HEIGHT);
+
+    for (int i = 0; i < n; i++) {
+        XCopyArea(display, cardsPixmap, pixmap, gc,
+                  0, 0,
+                  CARDS_WIDTH, CARDS_HEIGHT,
+                  cards[i].x, cards[i].y);
+    }
+
+    XFreePixmap(display, cardsPixmap);
+}
+
+void animate(Display *display, Window window, Pixmap pixmap, GC gc,
+             int width, int height, int who,
+             XImage *cardsImage, XPoint *cardPositions) {
+				
+    Card cards[NUM_CARDS];
+    int center_x = width / 2;
+    int center_y = height / 2;
+	animating = 1;
+
+	XColor background;
+    Colormap cmap = DefaultColormap(display, DefaultScreen(display));
+    XParseColor(display, cmap, "#117e1f", &background);
+    XAllocColor(display, cmap, &background);
+    XSetForeground(display, gc, background.pixel);
+	
+    for (int i = 0; i < NUM_CARDS; i++) {
+        cards[i].x = center_x;
+        cards[i].y = center_y;
+        cards[i].dx = (i - 2) * 4;
+        cards[i].dy = ((i % 2 == 0) ? -1 : 1) * 4;
+    }
+
+    for (int step = 0; step < 50; step++) {
+        XFillRectangle(display, pixmap, gc, 0, 0, width, height);
+        draw_animated_cards(display, window, pixmap, gc, cards, NUM_CARDS, cardsImage, cardPositions);
+        Refresh(display, window, gc, pixmap, 0, 0, width, height);
+        for (int i = 0; i < NUM_CARDS; i++) {
+            cards[i].x += cards[i].dx;
+            cards[i].y += cards[i].dy;
+        }
+        usleep(10000); // 30ms delay
+    }
+    XFillRectangle(display, pixmap, gc, 0, 0, width, height);
+	draw_medal(display, window, pixmap, gc, who, width/2-75, height/2-65);
+	Refresh(display, window, gc, pixmap, 0, 0, width, height);
+	XFlush(display);
+	usleep(5000000);
+    XFillRectangle(display, pixmap, gc, 0, 0, width, height);
+    Refresh(display, window, gc, pixmap, 0, 0, width, height);
+	animating=0;
+}
+
+
 int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
 	int min=(State==5)? 3: 0;
 	if(i_arrow<0){
@@ -427,7 +522,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     KeySym      keysym;
     static int	what=0;
     int		status=False;
-    int  	Last_State=0, position, resulters;
+    int  	Last_State=0, position, resulters, aux;
     struct timeval timer1, timer2;
     struct timezone zone;
 
@@ -459,6 +554,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		State=WAITING;
 		break;
 	case WAITING:
+		aux= RANDOM(40); 
 		if(Message==2000){
 			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
 			i_arrow=(i_arrow<7)?i_arrow+1:6;
@@ -488,6 +584,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Cutting(display, window, pixmap, gc, BACK, 480 );
     	First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
+		//MyScore = 11;
     	DrawScore(display, window, pixmap, gc, green_back, 
 		green_highlight, green_shadow, font_height, horiz, vert, score);
 	case 1:
@@ -506,6 +603,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		State=2;
 		break;
 	case 2:
+		aux= RANDOM(40);	
 		if((Message==4) || (Message==40) || (Message==2020))
 		{
 			// ButtonCut
@@ -822,18 +920,10 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			if(score1>1)
 			  YourScore+=ValGame;
 			if(score2>1) MyScore+=ValGame;
-			State=1;
-			if(YourScore>=MAXIMO)
-			  sprintf(Messa, "You Win !!!");
-			else if(MyScore>=MAXIMO) 
-			  sprintf(Messa, "Ohhh! I win!!! Try again!");
 			if((YourScore>=MAXIMO) || (MyScore>=MAXIMO))
-			{
-				TalkMachine( display, window, gc, Messa, 0 );
-				if(YourScore>MAXIMO) YourScore=MAXIMO;
-				if(MyScore>MAXIMO) MyScore=MAXIMO;
-				State=0;
-			}
+				State=14;
+			else
+				State=1;
 			alert=score1=score2=0;
 			Play=1;
 			Who_Play=1;
@@ -845,22 +935,35 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
 			      green_shadow, font_height, horiz, vert, score);
 		break;	 
+	case 14:
+		if(YourScore>=MAXIMO)
+			sprintf(Messa, "You Win !!!");
+		else if(MyScore>=MAXIMO) 
+			sprintf(Messa, "Ohhh! I win!!! Try again!");
+		if(YourScore>MAXIMO) YourScore=MAXIMO;
+		animate(display, window, pixmap, gc, 640, 480, (MyScore>MAXIMO) , bmdcards, pcard);
+		TalkMachine( display, window, gc, Messa, 0 );
+		State = 0;
+		break;
+
     }	
     if(status==True)
     switch( event.type )
     {
         case Expose:
-                Refresh( display, window, gc, pixmap,
+            Refresh( display, window, gc, pixmap,
 				     event.xexpose.x,
 				     event.xexpose.y,
 				     event.xexpose.width,
 				     event.xexpose.height );
 					 
-    		   DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
-						green_shadow, font_height, horiz, vert, score); 
-		    if(State==WAITING)
-				strcpy(Messa, "This is the Xlib version of the Truco game...");
-		    TalkMachine( display, window, gc, Messa, 0 ); 
+			if(!animating){
+				DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
+							green_shadow, font_height, horiz, vert, score); 
+				if(State==WAITING)
+					strcpy(Messa, "This is the Xlib version of the Truco game...");
+				TalkMachine( display, window, gc, Messa, 0 ); 
+			}
         	XFlush( display );
             break;
         case KeyPress:
@@ -1231,30 +1334,23 @@ int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc,
     char Scores[10];
     Scores[9] = '\0';
 
-    // Fundo
     XSetForeground(display, gc, c_back);
     XFillRectangle(display, window, gc, x, y, width, height);
 
-    // Bordas para efeito 3D
-    // Borda clara (topo e esquerda)
     XSetForeground(display, gc, c_highlight);
     XDrawLine(display, window, gc, x, y, x + width, y);       // Topo
     XDrawLine(display, window, gc, x, y, x, y + height);      // Esquerda
 
-    // Borda escura (base e direita)
     XSetForeground(display, gc, c_shadow);
     XDrawLine(display, window, gc, x, y + height, x + width, y + height);    // Base
     XDrawLine(display, window, gc, x + width, y, x + width, y + height);     // Direita
 
-    // Linha vertical no meio (divisor "machine" vs "you")
     XSetForeground(display, gc, c_shadow);
     XDrawLine(display, window, gc, x + width / 2, y, x + width / 2, y + height);
 
-    // Linha horizontal para separar cabeçalhos do placar
     int header_height = 3 * f;
     XDrawLine(display, window, gc, x, y + header_height, x + width, y + header_height);
 
-    // Textos dos títulos (usando cor clara para destacar)
     XSetForeground(display, gc, WhitePixel(display, 0)); // texto branco
     ShowText(display, window, gc, "Machine", x + 5, y + 2 * f);
     ShowText(display, window, gc, "You", x + 5 + width / 2, y + 2 * f);
@@ -1265,7 +1361,6 @@ int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc,
 
     sprintf(Scores, " %2d", draw_score[1].val_score);
     ShowText(display, window, gc, Scores, x + 5 + width / 2, y + header_height + 3 * f);
-
     return 0;
 }
 	
@@ -1616,14 +1711,21 @@ int AcceptTruco(int val1)
 	return(ret);
 }
 
-int RANDOM( int val_score )
+int RANDOM(int val_score)
 {
-	int ret;
+    if (val_score <= 0) return 0;
 
-#ifndef RAND_MAX
-	ret=(int) rand()%val_score;
-#else
-	ret=((int) (50.0*rand()/(RAND_MAX+1.0)))%val_score;
-#endif
-	return( ret );
+    int r, limit = RAND_MAX - (RAND_MAX % val_score);
+    do {
+        r = rand();
+    } while (r >= limit);
+
+    return r % val_score;
+}
+
+void init_random()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    srand(ts.tv_nsec ^ ts.tv_sec);
 }

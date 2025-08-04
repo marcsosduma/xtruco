@@ -20,13 +20,13 @@
 #define	      MAXIMO	   12
 #define	      YES	   	   88
 #define	      NO	       89
-#define	      NEW	       99
-#define	      WAITING	   91
 #define	      ERR_TRUCO	   666
 #define 	  CARDS_WIDTH  80
 #define  	  CARDS_HEIGHT 123
 #define 	  WAIT_VIEW    15000
 #define       NUM_CARDS    6
+
+enum stp {STEP_OPEN_GAME,STEP_WAITING,STEP_NEW_GAME,STEP_DECK_CUTTING, STEP_INIT_GAME, STEP_PLAYER_GAME,STEP_PC_EVALUATE_GAME,STEP_PLAYER_ACCEPT_TRUCO,STEP_PC_ACCEPT_TRUCO,STEP_END_GAME,STEP_ANIMATE,STEP_END_APP};
 
 typedef struct
     {
@@ -69,13 +69,13 @@ BIT_STRUCT    	the_bitmaps[ MAX_PIX ];
 TYPE_SCORE	    score[ 2 ]={{0,0,0},{0,0,0}};	
 
 int 			horiz, vert;
-int 			State=0, Message=0, Cards[40];
+int 			State=STEP_OPEN_GAME, Message=0, Cards[40];
 char   			Messa[80];
 static unsigned char    *CarBit[TOTAL];
 static unsigned long    black, white, green, blue, red, navy;
-unsigned long green_back = 0x008000;     // verde médio
-unsigned long green_highlight = 0x90EE90; // verde claro (lightgreen)
-unsigned long green_shadow = 0x006400;   // verde escuro
+unsigned long green_back 		= 0x008000; // green
+unsigned long green_highlight 	= 0x90EE90; // lightgreen
+unsigned long green_shadow 		= 0x006400; // darkgreen
 int font_height = 12;
 Pixmap		bitmap1;
 int			pc, you, Who_Play, You_Play, first, MyScore, YourScore;
@@ -270,7 +270,7 @@ int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arr
     XCopyArea(display, cardsPixmap, pixmap, gc,
               0, 0,
               12, 15,
-              pos_arrow_x, pos_arrow_y);                   // destino dentro do Pixmap
+              pos_arrow_x, pos_arrow_y);                   
 
 	Refresh( display, window, gc, pixmap, pos_arrow_x, pos_arrow_y,
 			12, 15 );
@@ -442,7 +442,7 @@ void animate(Display *display, Window window, Pixmap pixmap, GC gc,
             cards[i].x += cards[i].dx;
             cards[i].y += cards[i].dy;
         }
-        usleep(10000); // 30ms delay
+        usleep(10000);
     }
     XFillRectangle(display, pixmap, gc, 0, 0, width, height);
 	draw_medal(display, window, pixmap, gc, who, width/2-75, height/2-65);
@@ -456,7 +456,7 @@ void animate(Display *display, Window window, Pixmap pixmap, GC gc,
 
 
 int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
-	int min=(State==5)? 3: 0;
+	int min=(State==STEP_PLAYER_ACCEPT_TRUCO)? 3: 0;
 	if(i_arrow<0){
 		i_arrow= min;
 		while(i_arrow<3 && Table[i_arrow+3].card_state<1){
@@ -521,11 +521,11 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
     KeySym      keysym;
     static int	what=0;
     int		status=False;
-    int  	Last_State=0, position, resulters, aux;
+    int  	Last_State=STEP_OPEN_GAME, position, resulters, aux;
     struct timeval timer1, timer2;
     struct timezone zone;
 
-	/*
+	/* Debug
 	if(St != State){
 		printf("State=%d\n", State);
 		St = State;
@@ -535,24 +535,24 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 	if((status= CheckEvent( display, True, *width, *height, &event, &keysym ))==True){
 		Last_State= State;
 		if( ButtonEvent( display, &event ) == True ){
-			if( State==200)
+			if( State==STEP_END_APP)
 				return( False );
 		}else if( InvEvent( display, &event ) == True ){
-			if( State==200)
+			if( State==STEP_END_APP)
 				return( False );
 		}
     }	
     switch(State)
     {
-	case 0:
+	case STEP_OPEN_GAME:
     	First_Openning(display, window, pixmap, gc, 0 );
 		TrucoButton(1);
 		Clear_Talk(display, window, pixmap, gc);
 		i_arrow= 6;
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, False, 1);
-		State=WAITING;
+		State=STEP_WAITING;
 		break;
-	case WAITING:
+	case STEP_WAITING:
 		aux= RANDOM(40); 
 		if(Message==2000){
 			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
@@ -573,19 +573,19 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			}
 		}
 		break;
-	case NEW:
+	case STEP_NEW_GAME:
 		Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
 		TrucoButton(1);
 		Clear_Talk(display, window, pixmap, gc);
 		sprintf(Messa, "Starting a new game...");
 		TalkMachine( display, window, gc, Messa, 0 );
-		if(Last_State==2) 
+		if(Last_State==STEP_INIT_GAME) 
 			Cutting(display, window, pixmap, gc, BACK, 480 );
     	First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
     	DrawScore(display, window, pixmap, gc, green_back, 
 		green_highlight, green_shadow, font_height, horiz, vert, score);
-	case 1:
+	case STEP_DECK_CUTTING:
 		TrucoButton(1);
 		Clear_Talk(display, window, pixmap, gc);
 		TalkMachine( display, window, gc, Messa, 1 );
@@ -598,9 +598,9 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		pos_arrow_x= 20;
 		pos_arrow_y= vert/2 - 48 - 17; 
 		Draw_Arrow(display, window, pixmap, gc, horiz/2 -36- 20*10 + (10*pos_arrow_x), pos_arrow_y, False, 0);
-		State=2;
+		State=STEP_INIT_GAME;
 		break;
-	case 2:
+	case STEP_INIT_GAME:
 		aux= RANDOM(40);	
 		if((Message==4) || (Message==40) || (Message==2020))
 		{
@@ -623,16 +623,16 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			strcpy(Messa, "Let's go...");
 			i_arrow=-1; // arrow start
 			if(Beginer==1){
-				State=3;
+				State=STEP_PLAYER_GAME;
 				i_arrow = -1;
 			} else{
-				State=4;
+				State=STEP_PC_EVALUATE_GAME;
 			}
 			if((MyScore==MAXIMO-1) && (YourScore<11))
-				State=6;
+				State=STEP_PC_ACCEPT_TRUCO;
 			else if((YourScore==MAXIMO-1) && (MyScore<11))
 			{ 
-				Sum_Val=2; State=5; i_arrow=-1;
+				Sum_Val=2; State=STEP_PLAYER_ACCEPT_TRUCO; i_arrow=-1;
 				strcpy(Messa, "Will You go play?...");
 				Draw_Talk(display, window, pixmap, gc, 450 , 380, 6);
 			}
@@ -652,14 +652,14 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Message=0;
 		}
 		break;
-	case 3:
+	case STEP_PLAYER_GAME:
 		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
 			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
-			State=6;
+			State=STEP_PC_ACCEPT_TRUCO;
 			Who_Say_Truco=2;
 			ValGame+= Sum_Val;
 			Sum_Val=0;
@@ -689,12 +689,12 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			TableCards( display, window, pixmap, gc, BACK );
 			if((++Beginer)>2) Beginer=1;
 			if(Beginer==1) {
-				State=3;
+				State=STEP_PLAYER_GAME;
 				i_arrow = -1;
 			} else{
-				State=4;
+				State=STEP_PC_EVALUATE_GAME;
 			}
-			if((++Play)>2){ Play=1; State=13; }
+			if((++Play)>2){ Play=1; State=STEP_END_GAME; }
 		}
 		else if(Message==ERR_TRUCO)
 		{
@@ -705,11 +705,11 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Sum_Val = 0;
 			pc=you+1;
 			score1=0; score2=2;
-			State=13;
+			State=STEP_END_GAME;
 		}			
 		Message=0;
 		break;
-	case 4:
+	case STEP_PC_EVALUATE_GAME:
 		if(You_Play==100)
 		switch(Who_Play)
 		{
@@ -763,26 +763,26 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		   TableCards( display, window, pixmap, gc, BACK );
 		   if((++Beginer)>2) Beginer=1;
 		   if(Beginer==1) {
-				State=3; 
+				State=STEP_PLAYER_GAME; 
 				i_arrow=-1;
 		   }else{
-				 State=4;
+				 State=STEP_PC_EVALUATE_GAME;
 		   }
-		   if((++Play)>2) { Play=1; State=13; }
+		   if((++Play)>2) { Play=1; State=STEP_END_GAME; }
 		}
 		else{
-			State=5;
+			State=STEP_PLAYER_ACCEPT_TRUCO;
 			i_arrow=-1;
 		}
 		break;
-	case 5:
+	case STEP_PLAYER_ACCEPT_TRUCO:
 		SelectByKey(display, window, pixmap, gc);
 		if((Message==5) && (Who_Say_Truco!=2))
 		{
 			Clear_Talk(display, window, pixmap, gc);
 			if(i_arrow>=0 && i_arrow<8)
 				Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, (i_arrow>2));
-			State=6;
+			State=STEP_PC_ACCEPT_TRUCO;
 			Who_Say_Truco=2;
 			TalkMachine( display, window, gc, Messa, 1 ); 
 			ValGame+= Sum_Val;
@@ -796,10 +796,10 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Message=0;
 			TalkMachine( display, window, gc, Messa, 1 ); 
 			if(Beginer==1) {
-				State=3;
+				State=STEP_PLAYER_GAME;
 				i_arrow = -1;
 			} else{
-				State=4;
+				State=STEP_PC_EVALUATE_GAME;
 			}
 		}
 		else if(Message==NO)
@@ -810,7 +810,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			strcpy(Messa, "You're running away again...");
 			TalkMachine( display, window, gc, Messa, 0 ); 
 			Message=0;
-			State=13;
+			State=STEP_END_GAME;
 			Sum_Val=score1=0;
 			score2=10;
 			you=0;
@@ -824,16 +824,16 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Sum_Val = 0;
 			pc=you+1;
 			score1=0; score2=2;
-			State=13;
+			State=STEP_END_GAME;
 			Message=0;
 		}
 		break;
-	case 6:
+	case STEP_PC_ACCEPT_TRUCO:
 		if(Beginer==1) {
-			State=3;
+			State=STEP_PLAYER_GAME;
 			i_arrow = -1;
 		} else{
-			State=4;
+			State=STEP_PC_EVALUATE_GAME;
 		}
 		resulters=AcceptTruco(pc);
 		if(ValGame==1) info.number_of_trucos++;
@@ -849,7 +849,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 					ValGame+Sum_Val );
 			  TrucoButton(ValGame+Sum_Val);
 			  Draw_Talk(display, window, pixmap, gc, 450 , 380, (ValGame+Sum_Val)/3-1);
-			  State=5;
+			  State=STEP_PLAYER_ACCEPT_TRUCO;
 			  i_arrow=-1;
 			  Message=0;
 			}
@@ -864,10 +864,10 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			sprintf(Messa, "Sorry!!! I don't accept...");
 			TalkMachine( display, window, gc, Messa, 0 );
 			Draw_Talk(display, window, pixmap, gc, 450 , 380, 4);
-			State=13;score1=10; pc= score2=0; you=1;
+			State=STEP_END_GAME;score1=10; pc= score2=0; you=1;
 		}
 		break;
-	case 13:
+	case STEP_END_GAME:
 		You_Play=100;
 		if(you>pc)
 		{
@@ -902,10 +902,10 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			gettimeofday(&timer2, &zone );
 			if(timer2.tv_sec>(timer1.tv_sec+1L)) break; }
 		if(Beginer==1){
-			State=3;
+			State=STEP_PLAYER_GAME;
 			i_arrow = -1;
 		 }else{
-			State=4;
+			State=STEP_PC_EVALUATE_GAME;
 		 }
 		Table[7].card_state=0; Table[8].card_state=0;
 		if((score1>1) || (score2>1))
@@ -919,9 +919,9 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			  YourScore+=ValGame;
 			if(score2>1) MyScore+=ValGame;
 			if((YourScore>=MAXIMO) || (MyScore>=MAXIMO))
-				State=14;
+				State=STEP_ANIMATE;
 			else
-				State=1;
+				State=STEP_DECK_CUTTING;
 			alert=score1=score2=0;
 			Play=1;
 			Who_Play=1;
@@ -933,7 +933,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
 			      green_shadow, font_height, horiz, vert, score);
 		break;	 
-	case 14:
+	case STEP_ANIMATE:
 		if(YourScore>=MAXIMO)
 			sprintf(Messa, "You Win !!!");
 		else if(MyScore>=MAXIMO) 
@@ -958,7 +958,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			if(!animating){
 				DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
 							green_shadow, font_height, horiz, vert, score); 
-				if(State==WAITING)
+				if(State==STEP_WAITING)
 					strcpy(Messa, "This is the Xlib version of the Truco game...");
 				TalkMachine( display, window, gc, Messa, 0 ); 
 			}
@@ -1083,14 +1083,14 @@ int Button_No(Display	*display, Window window)
 {
 	if(State>2)
 	{
-		State=5;
+		State=STEP_PLAYER_ACCEPT_TRUCO;
 		Message=NO;	
 	}
 }
 
 int Button_New(Display	*display, Window window)
 {
-	State=NEW;
+	State=STEP_NEW_GAME;
 	Begining= RANDOM(2)+1;
 	Beginer=Begining;
 	alert=YourScore=MyScore=0;
@@ -1100,7 +1100,7 @@ int Button_New(Display	*display, Window window)
 
 int QuitApplication( Display *display, Window	window)
 {
-	State=200;
+	State=STEP_END_APP;
 	fprintf(stderr,"\nSuper Truco (XTruco)\n"\
 				   "By Marcos Martins Duma\n\n" );
 }

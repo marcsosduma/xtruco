@@ -5,11 +5,7 @@ Useful routines for manipulating X11 bitmaps
 
 #include "xbook.h"
 
-Pixmap LoadBitmap( display, window, filename, width, height )
-Display    *display;
-Window     window;
-char       filename[];
-int        *width, *height;
+Pixmap LoadBitmap( Display *display, Window window, char filename[], unsigned int *width, unsigned int * height )
 {
     int status;
     int xHotSpot, yHotSpot;

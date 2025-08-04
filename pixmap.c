@@ -12,6 +12,7 @@ int ClearPixmap( Display * display, Pixmap pixmap, GC gc, unsigned long fore,
 	XFillRectangle( display, pixmap, gc, 
 		0, 0, width, height );
 	XSetForeground( display, gc, fore );
+	return 0;
 }
 
 

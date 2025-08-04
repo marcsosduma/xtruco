@@ -71,7 +71,6 @@ TYPE_SCORE	    score[ 2 ]={{0,0,0},{0,0,0}};
 int 			horiz, vert;
 int 			State=STEP_OPEN_GAME, Message=0, Cards[40];
 char   			Messa[80];
-static unsigned char    *CarBit[TOTAL];
 static unsigned long    black, white, green, blue, red, navy;
 unsigned long green_back 		= 0x008000; // green
 unsigned long green_highlight 	= 0x90EE90; // lightgreen
@@ -100,16 +99,16 @@ int q=2;
 void init_random();
 int Button_New(Display	*display, Window window);
 int QuitApplication( Display *display, Window	window);
-void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id);
+void MakeButtons( Display * display, Window window, unsigned long fore, unsigned long back, Font font_id);
 int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int y, int width, int height);
 int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card);
 int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card);
 int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos);
 int TalkMachine(Display *display, Window window, GC gc, char *text, int	type);
 int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height);
-int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc, 
+int DrawScore(Display *display, Window window, GC gc, 
               unsigned long c_back, unsigned long c_highlight, unsigned long c_shadow,
-              int f, int horiz, int vert,
+              int f, int horiz,
               TYPE_SCORE *draw_score);
 int card1(Display *display, Window	window, int type);
 int card2(Display *display, Window	window, int type);
@@ -132,18 +131,19 @@ char *argv[];
 {
     Display    *display;
     int        screen;
-    Window     rootwindow, window;
+    Window     rootwindow=0, window=0;
     int        x, y, width, height;
     XFontStruct *font;
     Pixmap     icon, pixmap;
     GC         pixgc, gc;
-    int        num_bitmaps, font_height, position, fator;
+    int        font_height, position, fator;
     Colormap   colormap;
     int shmid, size, shmflg;
     key_t key; 
-    char * shmaddr;	
+	(void) truco_bits;
 
 #ifdef IPC_OK
+    char * shmaddr=NULL;	
     size= 3600*sizeof( unsigned char *);
     key= IPC_PRIVATE;
     shmflg= IPC_CREAT;
@@ -194,7 +194,6 @@ char *argv[];
     Table[7].Y= (Table[0].Y+Table[3].Y)/2;
     Table[8].X= Table[2].X-36;
     Table[8].Y= (Table[2].Y+Table[3].Y)/2;
-    num_bitmaps = 0;     
     pixmap = CreatePixmap( display, rootwindow, width,
               height, DefaultDepth( display, screen ),
 		      black, green, &pixgc );
@@ -207,10 +206,11 @@ char *argv[];
 				   &icon, &gc );
     font = LoadFont(display, gc, argc, argv, "");
     font_height	= (font->ascent + font->descent);
-    SetNormalHints( display, window, x, y, width, height );
+	(void)font_height;
+    SetNormalHints( display, window, x, y, width, height ); 
     SetWMHints( display, window, icon );
     NameWindow( display, window, "Super Truco", "Super Truco", "Super Truco" );
-    MakeButtons( display, window, gc, white, navy, font->fid );
+    MakeButtons( display, window, white, navy, font->fid );
 	
     MapWindow( display, window );
     while( EventLoop( display, window, pixmap, gc,
@@ -255,10 +255,6 @@ int Draw_Cards(Display *display, Window rootwindow,
 
 int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arrow_x, int pos_arrow_y, int clear, int type)
 { 
-	int what;
-  	int a=0; 
-	int pos1; 
- 	
 	int src_x = (clear)?1550:((type==0)?1500:1517);
     int src_y = 235;
 
@@ -276,6 +272,8 @@ int Draw_Arrow(Display *display,Window window, Pixmap pixmap, GC gc, int pos_arr
 			12, 15 );
 
 	XFreePixmap(display, cardsPixmap);
+
+	return 0;
 } 
 
 int Draw_Talk(Display *display,Window window, Pixmap pixmap, GC gc, int pos_x, int pos_y, int type)
@@ -299,6 +297,8 @@ int Draw_Talk(Display *display,Window window, Pixmap pixmap, GC gc, int pos_x, i
 	XFreePixmap(display, cardsPixmap);
 
 	has_talk=1;
+
+	return 0;
 } 
 
 void Clear_Talk(Display *display, Window window, Pixmap pixmap, GC gc) {
@@ -329,12 +329,15 @@ int First_Openning(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc,
     XFreePixmap( display, bitmap1 );
     Refresh( display, rootwindow, pixgc, pixmap, (horiz/2)-(super_width/2),
 		(vert/2)-(super_height/2), super_width, super_height );
+	return 0;
 }
 
 int DrawPartCards(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int card, int posx, int posy, int width)
 {
 	int src_x = pcard[card].x;
     int src_y = pcard[card].y;
+
+	(void)width;
 
 	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
                                        CARDS_WIDTH, CARDS_HEIGHT,
@@ -355,6 +358,8 @@ int ClearCard(Display *display, Window rootwindow, Pixmap pixmap, GC pixgc, int 
 
 	int src_x = pcard[41].x;
     int src_y = pcard[41].y;
+
+	(void) width;
 
 	Pixmap cardsPixmap = XCreatePixmap(display, rootwindow,
                                        CARDS_WIDTH, CARDS_HEIGHT,
@@ -513,6 +518,7 @@ int SelectByKey(Display*display, Window window, Pixmap pixmap, GC gc){
 				break;
 			}
 		}
+	return 0;
 }
 
 int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width, int *height)
@@ -554,6 +560,7 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 		break;
 	case STEP_WAITING:
 		aux= RANDOM(40); 
+		(void)aux;
 		if(Message==2000){
 			Draw_Arrow(display, window, pixmap, gc, parrow[i_arrow].x, parrow[i_arrow].y, True, 1);
 			i_arrow=(i_arrow<7)?i_arrow+1:6;
@@ -583,8 +590,9 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Cutting(display, window, pixmap, gc, BACK, 480 );
     	First_Openning(display, window, pixmap, gc, 1 );
 		score[0].val_score=0; score[1].val_score=0; 
-    	DrawScore(display, window, pixmap, gc, green_back, 
-		green_highlight, green_shadow, font_height, horiz, vert, score);
+    	DrawScore(display, window, gc, green_back, 
+		green_highlight, green_shadow, font_height, horiz, score);
+		/* fall through */
 	case STEP_DECK_CUTTING:
 		TrucoButton(1);
 		Clear_Talk(display, window, pixmap, gc);
@@ -930,8 +938,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			Who_Play++;
 		score[0].val_score=MyScore; score[1].val_score= YourScore;
 		TableCards( display, window, pixmap, gc, BACK );
-		DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
-			      green_shadow, font_height, horiz, vert, score);
+		DrawScore(display, window, gc, green_back, green_highlight, 
+			      green_shadow, font_height, horiz, score);
 		break;	 
 	case STEP_ANIMATE:
 		if(YourScore>=MAXIMO)
@@ -956,8 +964,8 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 				     event.xexpose.height );
 					 
 			if(!animating){
-				DrawScore(display, window, pixmap, gc, green_back, green_highlight, 
-							green_shadow, font_height, horiz, vert, score); 
+				DrawScore(display, window, gc, green_back, green_highlight, 
+							green_shadow, font_height, horiz, score); 
 				if(State==STEP_WAITING)
 					strcpy(Messa, "This is the Xlib version of the Truco game...");
 				TalkMachine( display, window, gc, Messa, 0 ); 
@@ -1010,9 +1018,10 @@ int Refresh( Display   *display, Window window, GC gc, Pixmap pixmap, int x, int
     }
     XCopyArea( display, pixmap, window, gc, x, y, width,
 			height, x, y );
+	return 0;
 }
 
-void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, unsigned long back, Font font_id)
+void MakeButtons( Display * display, Window window, unsigned long fore, unsigned long back, Font font_id)
 {
 	int	QuitApplication();
 	int	Button_Truco();
@@ -1066,66 +1075,93 @@ void MakeButtons( Display * display, Window window, GC gc, unsigned long fore, u
 
 int Button_Truco(Display	*display, Window window)
 {
+	(void) display;
+	(void) window;
 	if((YourScore==MAXIMO-1) || (MyScore==MAXIMO-1))
 		Message=ERR_TRUCO;
 	else
 		Message=5;
+	return 0;
 }
 
 int Button_Yes(Display	*display, Window window)
 {
+	(void) display;
+	(void) window;
 	ValGame+= Sum_Val;
 	Sum_Val=0;
 	Message=YES;
+	return 0;
 }
 
 int Button_No(Display	*display, Window window)
 {
+	(void) display;
+	(void) window;
 	if(State>2)
 	{
 		State=STEP_PLAYER_ACCEPT_TRUCO;
 		Message=NO;	
 	}
+	return 0;
 }
 
 int Button_New(Display	*display, Window window)
 {
+	(void) display;
+	(void) window;
 	State=STEP_NEW_GAME;
 	Begining= RANDOM(2)+1;
 	Beginer=Begining;
 	alert=YourScore=MyScore=0;
 	Play=1; Who_Play=1; You_Play=100;
 	info.number_of_trucos=info.first_truco=0;
+	return 0;
 }
 
 int QuitApplication( Display *display, Window	window)
 {
+	(void) display;
+	(void) window;
 	State=STEP_END_APP;
 	fprintf(stderr,"\nSuper Truco (XTruco)\n"\
 				   "By Marcos Martins Duma\n\n" );
+	return 0;
 }
 
 int card1(Display *display, Window	window, int type)
 {
+	(void) display;
+	(void) window;
 	if(Table[3].card_state!=0)
 		Message=1*type;
+	return 0;
 }
 
 int card2(Display *display, Window	window, int type)
 {
+	(void) display;
+	(void) window;
 	if(Table[4].card_state!=0)
 		Message=2*type;
+	return 0;
 }
 
 int card3(Display *display, Window	window, int type)
 {
+	(void) display;
+	(void) window;
 	if(Table[5].card_state!=0)
 		Message=3*type;
+	return 0; 
 }
 
 int Button_Cut(Display *display, Window	window, int type)
 {
+	(void) display;
+	(void) window;
 	Message=4*type;
+	return 0;
 }
 
 void Shuffle() 
@@ -1172,6 +1208,7 @@ int ShowCards(Display *display,Window window, Pixmap pixmap, GC gc, int card)
 		usleep(WAIT_VIEW);
 		pos1+= 10;
  	} 
+	return 0;
 } 
 
 int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int pos)
@@ -1276,6 +1313,7 @@ int Cutting(Display *display, Window window, Pixmap pixmap, GC gc, int card, int
 		Table[a].val_score=11 + (Table[a].what-1)%4;
 		else Table[a].val_score=b;
 	}
+	return 0;
 } 
  
 int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card)
@@ -1302,6 +1340,7 @@ int TableCards (Display *display, Window window, Pixmap pixmap, GC gc, int card)
 				 Table[a].Y, CARDS_WIDTH, CARDS_HEIGHT );
 		}
 	}
+	return 0;
 }
 
 #define	SC_WIDTH	150
@@ -1317,9 +1356,9 @@ void ShowText( Display *display, Window window, GC gc, char text[], int pos1, in
 }
 
 
-int DrawScore(Display *display, Window window, Pixmap pixmap, GC gc, 
+int DrawScore(Display *display, Window window, GC gc, 
               unsigned long c_back, unsigned long c_highlight, unsigned long c_shadow,
-              int f, int horiz, int vert,
+              int f, int horiz, 
               TYPE_SCORE *draw_score) {
 
     int SC_HEIGHT = 8 * f;
@@ -1385,6 +1424,7 @@ int TalkMachine(Display *display, Window window, GC gc, char *text, int	type)
 	pos2+= (b/2);	
 	XDrawImageString( display, window, gc, pos1, pos2,
 		buffer, tam );
+	return 0;
 }
 
 
@@ -1394,7 +1434,7 @@ int FirstGame()
 			int v;
 			int q;
 			} c[3], t;
-	int a,b,c1,c2,c3,ret, aleat;
+	int a,b,c1,c2,c3,ret=-1,aleat;
 
 	for(a=0;a<3;a++)
 	{
@@ -1464,7 +1504,7 @@ int SecondGame()
 			int v;
 			int q;
 			} c[2], t;
-	int a,b,c1,c2,ret,aleat;
+	int a,b,c1,c2,ret=-1,aleat;
 
 	b=0;
 	for(a=0;a<3;a++)
@@ -1532,7 +1572,7 @@ int SecondGame()
 int ThirdGame()
 {
 	int a;
-	int ret;
+	int ret=-1;
 
 	for(a=0;a<3;a++)
 	{
@@ -1547,7 +1587,7 @@ int CanSayTruco(int val1, int val2)
 {
 	int a,c1,c2,ret,aleat;
 
-	ret=0;
+	ret=0;c1=0;c2=0;
 	if(MyScore+ValGame>=MAXIMO) return( ret );
 	for(a=0;a<3;a++)
 	{

@@ -37,6 +37,7 @@ int CheckDisplayName( int argc, char *argv[], char display_name[])
 		}
 		counter++;
 	}
+	return 0;
 }
 
 Display *SetUpDisplay(int argc, char *argv[], int *screen)
@@ -76,6 +77,7 @@ int CloseDisplay( Display *display, Window window, GC gc)
 	XDestroyWindow( display, window );
 	XFlush( display );
 	XCloseDisplay( display );
+	return 0;
 }
 
 int QuitX( Display *display, char error_message[], char error_file[])

@@ -100,6 +100,7 @@ int NextEvent( Display *display, int want_exposes, int width, int height, XEvent
 			width, height,
 			keysym );
 	}
+	return 0;
 }
 
 KeySym Key2Keysym( keyevent )

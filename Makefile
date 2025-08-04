@@ -10,12 +10,12 @@ INCLUDES    = $(shell pkg-config --cflags x11)
 LIBRARIES   = $(shell pkg-config --libs x11)
 
 # Remove '-DIPC_OK' if you have problems with 'shared-memory' (IPC routines)
-OPC         = -DIPC_OK
+OPC         = -DIPC_OK -Wall -Wextra
 
 CFILES      = xtruco.c bitmap.c cursor.c display.c event.c gc.c pixmap.c\
               topwind.c window.c color.c button.c font.c read.c loadbmp.c
 
-CC          = gcc -O2 -g -Dlinux -DX11R6 $(OPC)
+CC          = gcc -O2 -g -Dlinux -DX11R6 $(OPC) 
 
 PROG        = xtruco
 

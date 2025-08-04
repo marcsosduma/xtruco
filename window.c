@@ -49,7 +49,8 @@ long	events;
 int CheckGeometry( int argc, char *argv[], int screen_width, int screen_height, int *x, int *y, int *width, int *height)
 {
 	int status;
-	int x1, y1, width1, height1;
+	int x1, y1;
+	unsigned int width1, height1;
 	int counter;
 
 	counter = 1;
@@ -78,6 +79,7 @@ int CheckGeometry( int argc, char *argv[], int screen_width, int screen_height, 
 		}
 		counter++;
 	}
+	return 0;
 }
 
 int MapWindow( Display *display, Window window)
@@ -85,6 +87,7 @@ int MapWindow( Display *display, Window window)
 	XMapRaised( display, window );
 	XMapSubwindows( display, window );
 	XFlush( display );
+	return 0;
 }
 
 int NameWindow( Display *display, Window window, char *name, char *class_name, char *class_type)
@@ -109,6 +112,7 @@ int NameWindow( Display *display, Window window, char *name, char *class_name, c
 	XStoreName( display, window, name );
 	XSetIconName( display, window, name );
 	(void) strcpy( AppName, name );
+	return 0;
 }
 
 int SetWMHints( Display *display, Window window, Pixmap icon)
@@ -143,6 +147,7 @@ int SetWMHints( Display *display, Window window, Pixmap icon)
 		free( wmhints );
 #endif
 	}
+	return 0;
 }
 
 int SetNormalHints( Display *display, Window window, int x, int y, int width, int height)
@@ -173,9 +178,11 @@ int SetNormalHints( Display *display, Window window, int x, int y, int width, in
 		free( sizehints );
 #endif
 	}
+	return 0;
 }
 
 int GetAppName( char *name )
 {
 	(void) strcpy(name , AppName );
+	return 0;
 }

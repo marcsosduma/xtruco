@@ -28,5 +28,6 @@ int SetGC( Display *display, GC	gc, unsigned long fore, unsigned long back)
 {
 	XSetForeground( display, gc, fore );
 	XSetBackground( display, gc, back );
+	return 0;
 }
 

@@ -942,12 +942,14 @@ int EventLoop( Display*display, Window window, Pixmap pixmap, GC gc, int *width,
 			      green_shadow, font_height, horiz, score);
 		break;	 
 	case STEP_ANIMATE:
-		if(YourScore>=MAXIMO)
+		if(YourScore>=MAXIMO){
 			sprintf(Messa, "You Win !!!");
-		else if(MyScore>=MAXIMO) 
+			animate(display, window, pixmap, gc, 640, 480, 0, bmdcards, pcard);
+		}else if(MyScore>=MAXIMO){
 			sprintf(Messa, "Ohhh! I win!!! Try again!");
+			animate(display, window, pixmap, gc, 640, 480, 1, bmdcards, pcard);
+		}
 		if(YourScore>MAXIMO) YourScore=MAXIMO;
-		animate(display, window, pixmap, gc, 640, 480, (MyScore>MAXIMO) , bmdcards, pcard);
 		TalkMachine( display, window, gc, Messa, 0 );
 		State = 0;
 		break;
